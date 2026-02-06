@@ -274,6 +274,8 @@ def _build_episode_qc_summary(
     state_data_scores: dict[int, float] | None = None,
     action_data_scores: dict[int, float] | None = None,
     video_scores: dict[int, float] | None = None,
+    state_data_scores_perchecker: dict[int, dict] | None = None,  # episode_data算子单独得分
+    video_scores_perchecker: dict[int, dict] | None = None,       # episode_video算子单独得分
 ) -> dict[int, dict]:
     # 转为 set 加速查找
     if bad_data_episodes is None:
@@ -286,28 +288,65 @@ def _build_episode_qc_summary(
     if video_scores is None:
         video_scores = {}
 
+    state_data_scores_perchecker = state_data_scores_perchecker or defaultdict(dict)
+    video_scores_perchecker = video_scores_perchecker or defaultdict(dict)
     # 假设所有 score 列表长度一致，取其一作为总 episode 数
 
-    # 构建字典
     episode_summary = defaultdict(dict)
+    # 处理异常episode
     for episode_idx in bad_data_episodes:
+        # 提取episode_data算子单独得分
+        static_frame_rate_score = state_data_scores_perchecker.get(episode_idx, {}).get("static_frame_rate", 0.0)
+        static_joint_score = state_data_scores_perchecker.get(episode_idx, {}).get("static_joint", 0.0)
+        
+        # 提取episode_video算子单独得分
+        max_frame_stable_then_jump_rate_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_stable_then_jump_rate", 0.0)
+        max_frame_jump_dist_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_jump_dist", 0.0)
+        color_shift_detection_score = video_scores_perchecker.get(episode_idx, {}).get("video_color_shift_detection", 0.0)
+
         episode_summary[episode_idx].update(
             {
                 "is_bad": 1,
+                # 原有分组汇总得分
                 "state_data_score": state_data_scores.get(episode_idx, 0),
                 "action_data_score": action_data_scores.get(episode_idx, 0),
                 "video_score": video_scores.get(episode_idx, 1),
+                # Episode Data 算子单独得分
+                "episode_data_static_frame_rate_score": static_frame_rate_score,
+                "episode_data_static_joint_score": static_joint_score,
+                # Episode Video 算子单独得分
+                "episode_video_max_frame_stable_then_jump_rate_score": max_frame_stable_then_jump_rate_score,
+                "episode_video_max_frame_jump_dist_score": max_frame_jump_dist_score,
+                "episode_video_color_shift_detection_score": color_shift_detection_score,
             }
         )
+    # 处理正常episode
     for episode_idx in (
         set(state_data_scores.keys()) | set(action_data_scores.keys()) | set(video_scores.keys())
     ):
+        # 提取episode_data算子单独得分
+        static_frame_rate_score = state_data_scores_perchecker.get(episode_idx, {}).get("static_frame_rate", 0.0)
+        static_joint_score = state_data_scores_perchecker.get(episode_idx, {}).get("static_joint", 0.0)
+        
+        # 提取episode_video算子单独得分
+        max_frame_stable_then_jump_rate_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_stable_then_jump_rate", 0.0)
+        max_frame_jump_dist_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_jump_dist", 0.0)
+        color_shift_detection_score = video_scores_perchecker.get(episode_idx, {}).get("video_color_shift_detection", 0.0)
+
         episode_summary[episode_idx].update(
             {
                 "is_bad": episode_idx in bad_set,
+                # 原有分组汇总得分
                 "state_data_score": state_data_scores.get(episode_idx, 1),
                 "action_data_score": action_data_scores.get(episode_idx, 1),
                 "video_score": video_scores.get(episode_idx, 1),
+                # Episode Data 算子单独得分
+                "episode_data_static_frame_rate_score": static_frame_rate_score,
+                "episode_data_static_joint_score": static_joint_score,
+                # Episode Video 算子单独得分
+                "episode_video_max_frame_stable_then_jump_rate_score": max_frame_stable_then_jump_rate_score,
+                "episode_video_max_frame_jump_dist_score": max_frame_jump_dist_score,
+                "episode_video_color_shift_detection_score": color_shift_detection_score,
             }
         )
     return episode_summary
@@ -372,20 +411,27 @@ def _gen_one_dataset_quality_check_task_without_sync(
 
 
 def _check_repo(repo_path: str | Path, checker_config: dict, data_feature: str) -> dict[int, dict]:
-    qc_results, _ = quality_check_pipeline(repo_path, checker_config, data_feature=data_feature)
+    # 注意：这里要保留第二个返回值（包含所有算子单独得分）
+    qc_results, qc_detailed_results = quality_check_pipeline(repo_path, checker_config, data_feature=data_feature)
     bad_episodes, state_data_scores, action_data_scores, video_scores = (
         qc_results.get("bad_data_episodes", []),
         qc_results.get("state_data_scores", {}),
         qc_results.get("action_data_scores", {}),
         qc_results.get("video_scores", {}),
     )
+    # 提取算子单独得分
+    state_data_scores_perchecker = qc_detailed_results.get("state_data_scores_perchecker", {})
+    video_scores_perchecker = qc_detailed_results.get("video_scores_perchecker", {})
 
     return _build_episode_qc_summary(
         bad_episodes,
         state_data_scores=state_data_scores,
         action_data_scores=action_data_scores,
         video_scores=video_scores,
+        state_data_scores_perchecker=state_data_scores_perchecker,  # 传递episode_data算子单独得分
+        video_scores_perchecker=video_scores_perchecker,            # 传递episode_video算子单独得分
     )
+
 
 
 class DatasetQualityCheck:
@@ -420,9 +466,7 @@ class DatasetQualityCheck:
             qc_results = _check_repo(repo_path, checker_config, MERGED_DATA_FEATURE)
 
             with self.db.with_session() as session:
-                item = (
-                    session.query(DatasetDB).filter(DatasetDB.dataset_uuid == dataset_uuid).first()
-                )
+                item = session.query(DatasetDB).filter(DatasetDB.dataset_uuid == dataset_uuid).first()
                 if item:
                     item.qc_status = TaskStatus.COMPLETED
                 else:
@@ -433,17 +477,24 @@ class DatasetQualityCheck:
                         dataset_uuid=dataset_uuid,
                         episode_idx=episode_idx,
                         is_bad_episode=summary["is_bad"],
+                        # 原有分组汇总得分
                         state_data_score=summary["state_data_score"],
                         action_data_score=summary["action_data_score"],
                         video_score=summary["video_score"],
+                        # Episode Data 算子单独得分
+                        episode_data_static_frame_rate_score=summary["episode_data_static_frame_rate_score"],
+                        episode_data_static_joint_score=summary["episode_data_static_joint_score"],
+                        # Episode Video 算子单独得分
+                        episode_video_max_frame_stable_then_jump_rate_score=summary["episode_video_max_frame_stable_then_jump_rate_score"],
+                        episode_video_max_frame_jump_dist_score=summary["episode_video_max_frame_jump_dist_score"],
+                        episode_video_color_shift_detection_score=summary["episode_video_color_shift_detection_score"],
                     )
                     session.add(episode_qc_item)
                 session.commit()
+        # 异常处理逻辑不变
         except Exception:
             with self.db.with_session() as session:
-                item = (
-                    session.query(DatasetDB).filter(DatasetDB.dataset_uuid == dataset_uuid).first()
-                )
+                item = session.query(DatasetDB).filter(DatasetDB.dataset_uuid == dataset_uuid).first()
                 if item:
                     item.qc_status = TaskStatus.FAILED
                     item.qc_err_msg = traceback.format_exc()
@@ -548,15 +599,10 @@ class DatasetQualityCheckServer(TaskServer):
             return
 
         try:
-            # 提取任务结果字段，增加默认值避免报错
             task_status = task_result_content.get(TASK_RESULT_STATUS)
             err_msg = task_result_content.get(ERR_MSG, "")
             task_content_dict = task_result_content.get(TASK_RESULT_CONTENT, {})
             qc_results = task_content_dict.get(QC_RESULT, {})
-
-            # # 新增：打印日志，验证qc_results是否为空
-            # self.logger.info(f"qc_results content: {qc_results}")
-            self.logger.info(f"qc_results length: {len(qc_results)}")
 
             with self.db.with_session() as session:
                 item = session.query(DatasetDB).filter(DatasetDB.dataset_uuid == ds_uuid).first()
@@ -565,14 +611,10 @@ class DatasetQualityCheckServer(TaskServer):
                     return
 
                 if task_status == TASK_SUCCESS:
-                    # 更新数据集QC状态为完成
                     item.qc_status = TaskStatus.COMPLETED
-                    item.qc_err_msg = ""  # 清空历史错误信息
-
-                    # 删除该数据集原有QC记录，插入新记录
+                    item.qc_err_msg = ""
                     session.query(EpisodeQcDB).filter(EpisodeQcDB.dataset_uuid == ds_uuid).delete()
 
-                    # 遍历QC结果，增加容错处理
                     for episode_idx_str, summary in qc_results.items():
                         try:
                             episode_idx = int(episode_idx_str)
@@ -580,36 +622,47 @@ class DatasetQualityCheckServer(TaskServer):
                             self.logger.warning(f"Skip invalid episode index: {episode_idx_str}")
                             continue
 
-                        # 提取summary字段，增加默认值避免KeyError
+                        # 提取所有字段（汇总+单独算子）
                         is_bad = summary.get("is_bad", False)
                         state_score = summary.get("state_data_score", 0.0)
                         action_score = summary.get("action_data_score", 0.0)
                         video_score = summary.get("video_score", 0.0)
-
+                        # Episode Data 算子单独得分
+                        static_frame_rate_score = summary.get("episode_data_static_frame_rate_score", 0.0)
+                        static_joint_score = summary.get("episode_data_static_joint_score", 0.0)
+                        # Episode Video 算子单独得分
+                        max_frame_stable_then_jump_rate_score = summary.get("episode_video_max_frame_stable_then_jump_rate_score", 0.0)
+                        max_frame_jump_dist_score = summary.get("episode_video_max_frame_jump_dist_score", 0.0)
+                        episode_video_color_shift_detection_score = summary.get("episode_video_color_shift_detection_score", 0.0)
 
                         episode_qc_item = EpisodeQcDB(
                             dataset_uuid=ds_uuid,
                             episode_idx=episode_idx,
                             is_bad_episode=is_bad,
+                            # 原有分组汇总得分
                             state_data_score=state_score,
                             action_data_score=action_score,
                             video_score=video_score,
+                            # Episode Data 算子单独得分
+                            episode_data_static_frame_rate_score=static_frame_rate_score,
+                            episode_data_static_joint_score=static_joint_score,
+                            # Episode Video 算子单独得分
+                            episode_video_max_frame_stable_then_jump_rate_score=max_frame_stable_then_jump_rate_score,
+                            episode_video_max_frame_jump_dist_score=max_frame_jump_dist_score,
+                            episode_video_color_shift_detection_score=episode_video_color_shift_detection_score,
                         )
                         session.add(episode_qc_item)
 
                     self.logger.info(f"Dataset {ds_uuid} quality check completed successfully.")
                 else:
-                    # 更新数据集QC状态为失败，记录错误信息
                     item.qc_status = TaskStatus.FAILED
-                    item.qc_err_msg = err_msg[:1000]  # 截断过长信息，避免数据库字段溢出
+                    item.qc_err_msg = err_msg[:1000]
                     self.logger.error(f"Dataset {ds_uuid} quality check failed: {err_msg}")
 
-                # 提交事务
                 session.commit()
 
         except Exception as e:
             self.logger.error(f"Handle task result for {ds_uuid} failed with exception: {str(e)}\n{traceback.format_exc()}")
-
 
 
 class DatasetQualityCheckClient(TaskClient):

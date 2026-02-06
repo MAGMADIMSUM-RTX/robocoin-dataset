@@ -354,3 +354,12 @@ class EpisodeQcDB(Base):
     state_data_score = Column(Float, nullable=True)
     action_data_score = Column(Float, nullable=True)
     video_score = Column(Float, nullable=True)
+    
+    # ==================== Episode Data 算子单独得分 ====================
+    episode_data_static_frame_rate_score = Column(Float, default=0.0)    # static_frame_rate 算子
+    episode_data_static_joint_score = Column(Float, default=0.0)         # static_joint 算子
+    
+    # ==================== Episode Video 算子单独得分 ====================
+    episode_video_max_frame_stable_then_jump_rate_score = Column(Float, default=0.0)  # max_frame_stable_then_jump_rate 算子
+    episode_video_max_frame_jump_dist_score = Column(Float, default=0.0)              # max_frame_jump_dist 算子
+    episode_video_color_shift_detection_score = Column(Float, default=0.0)           

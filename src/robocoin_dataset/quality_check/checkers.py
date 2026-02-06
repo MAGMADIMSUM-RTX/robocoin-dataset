@@ -3,6 +3,7 @@ from pathlib import Path
 import av
 import imagehash
 import numpy as np
+import cv2
 
 from robocoin_dataset.quality_check.checker_registry import (
     data_video_consistency_checker_registry,
@@ -503,3 +504,84 @@ def decect_inconsistent_length(video_paths: list[str | Path], frame_num: int) ->
             return True
 
     return False
+
+# 保留原有的辅助函数 + 适配算子格式
+def compute_mean_colors(image: np.ndarray) -> dict:
+    """计算图像各通道的平均颜色（BGR）"""
+    return {
+        "B": np.mean(image[:, :, 0]),
+        "G": np.mean(image[:, :, 1]),
+        "R": np.mean(image[:, :, 2]),
+    }
+
+@episode_video_checker_registry("video_color_shift_detection")  # 新算子注册名
+def detect_video_color_shift(
+    video_paths: list[str | Path], 
+    color_diff_threshold: float = 30.0
+) -> float:
+    """
+    检测视频帧间的色差问题（替换原有模糊检测算子）
+    参数:
+        video_paths: 视频路径列表
+        color_diff_threshold: 颜色差异阈值（0-255，默认30）
+    返回:
+        float: 色差帧占比（1=全色差，0=无色差）→ 用于后续得分计算
+    """
+    total_color_shift_frames = 0
+    total_valid_frames = 0
+
+    for video_path in video_paths:
+        video_path = Path(video_path)
+        if not video_path.exists():
+            return 1.0  # 路径不存在视为全色差
+        
+        try:
+            # 强制软件解码（解决AV1解码问题）
+            container = av.open(str(video_path))
+            video_stream = next(s for s in container.streams.video)
+            video_stream.codec_context.options = {"hwaccel": "none"}
+        except Exception as e:
+            print(f"打开视频{video_path}失败: {e}")
+            return 1.0  # 解码失败视为全色差
+
+        prev_mean_colors = None
+        frame_idx = 0
+
+        try:
+            for frame in container.decode(video_stream):
+                frame_idx += 1
+                # 转换为BGR格式（适配OpenCV）
+                image = frame.to_ndarray(format="bgr24")
+                current_mean_colors = compute_mean_colors(image)
+
+                if prev_mean_colors is None:
+                    prev_mean_colors = current_mean_colors
+                    continue
+
+                # 计算帧间最大颜色差异
+                color_diff = max(
+                    abs(current_mean_colors["B"] - prev_mean_colors["B"]),
+                    abs(current_mean_colors["G"] - prev_mean_colors["G"]),
+                    abs(current_mean_colors["R"] - prev_mean_colors["R"]),
+                )
+
+                # 超过阈值视为色差帧
+                if color_diff > color_diff_threshold:
+                    total_color_shift_frames += 1
+                total_valid_frames += 1
+                prev_mean_colors = current_mean_colors
+
+        except Exception as e:
+            print(f"处理视频{video_path}帧失败: {e}")
+            container.close()
+            return 1.0  # 处理失败视为全色差
+
+        container.close()
+
+    # 无有效帧视为全色差
+    if total_valid_frames == 0:
+        return 1.0
+    
+    # 返回色差帧占比（1=全色差，0=无色差）
+    color_shift_ratio = total_color_shift_frames / total_valid_frames
+    return color_shift_ratio

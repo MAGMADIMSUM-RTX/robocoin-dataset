@@ -31,12 +31,17 @@ episode_data_checkers:
     should_check: True  
     score_weight: 1.0   
 
-# episode_video_checkers:
-#   - name: "max_frame_stable_then_jump_rate"
-#     should_check: True  
-#     score_weight: 1.0   
+episode_video_checkers:
+  - name: "max_frame_stable_then_jump_rate"
+    should_check: True  
+    score_weight: 1.0   
 
-#   - name: "max_frame_jump_dist"
-#     should_check: True  
-#     max_dist_threshold: 50
-#     score_weight: 1.0   
+  - name: "max_frame_jump_dist"
+    should_check: True  
+    max_dist_threshold: 50
+    score_weight: 1.0   
+
+  - name: "video_color_shift_detection"  # 必须和算子注册名一致
+    should_check: True                    # 启用
+    color_diff_threshold: 30.0            # 自定义参数
+    score_weight: 1.0                     # 得分权重
