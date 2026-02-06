@@ -16,6 +16,7 @@
 !testDockerImage.sh
 !.dockerignore
 !configs/**
+!/tools/**
 
 # Byte-compiled / optimized / DLL files
 
