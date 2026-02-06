@@ -1,0 +1,302 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="Bot2_ZPF_L2Fgripper_R2Fgripper_A_description">
+  <compiler angle="radian" />
+
+  <asset>
+    <mesh name="fixed_base_link" content_type="model/stl" file="fixed_base_link.STL" />
+    <mesh name="driven_wheel_left_front_link_v" content_type="model/stl" file="driven_wheel_left_front_link_v.STL" />
+    <mesh name="driven_wheel_left_front_link_h" content_type="model/stl" file="driven_wheel_left_front_link_h.STL" />
+    <mesh name="driven_wheel_left_behind_link_v" content_type="model/stl" file="driven_wheel_left_behind_link_v.STL" />
+    <mesh name="driven_wheel_left_behind_link_h" content_type="model/stl" file="driven_wheel_left_behind_link_h.STL" />
+    <mesh name="driven_wheel_right_front_link_v" content_type="model/stl" file="driven_wheel_right_front_link_v.STL" />
+    <mesh name="driven_wheel_right_front_link_h" content_type="model/stl" file="driven_wheel_right_front_link_h.STL" />
+    <mesh name="driven_wheel_right_behind_link_v" content_type="model/stl" file="driven_wheel_right_behind_link_v.STL" />
+    <mesh name="driven_wheel_right_behind_link_h" content_type="model/stl" file="driven_wheel_right_behind_link_h.STL" />
+    <mesh name="driving_wheel_left_link" content_type="model/stl" file="driving_wheel_left_link.STL" />
+    <mesh name="driving_wheel_right_link" content_type="model/stl" file="driving_wheel_right_link.STL" />
+    <mesh name="ankle_pitch_calf_link" content_type="model/stl" file="ankle_pitch_calf_link.STL" />
+    <mesh name="knee_pitch_thigh_link" content_type="model/stl" file="knee_pitch_thigh_link.STL" />
+    <mesh name="waist_pitch_waist_link" content_type="model/stl" file="waist_pitch_waist_link.STL" />
+    <mesh name="waist_yaw_torso_link" content_type="model/stl" file="waist_yaw_torso_link.STL" />
+    <mesh name="ego" content_type="model/stl" file="ego.STL" />
+    <mesh name="head_yaw_neck_link" content_type="model/stl" file="head_yaw_neck_link.STL" />
+    <mesh name="head_pitch_head_link" content_type="model/stl" file="head_pitch_head_link.STL" />
+    <mesh name="ZPF_left_base_link" content_type="model/stl" file="ZPF_left_base_link.STL" />
+    <mesh name="ZPF_left_Link1" content_type="model/stl" file="ZPF_left_Link1.STL" />
+    <mesh name="ZPF_left_Link2" content_type="model/stl" file="ZPF_left_Link2.STL" />
+    <mesh name="ZPF_left_Link3" content_type="model/stl" file="ZPF_left_Link3.STL" />
+    <mesh name="ZPF_left_Link4" content_type="model/stl" file="ZPF_left_Link4.STL" />
+    <mesh name="ZPF_left_Link5" content_type="model/stl" file="ZPF_left_Link5.STL" />
+    <mesh name="ZPF_left_Link6" content_type="model/stl" file="ZPF_left_Link6.STL" />
+    <mesh name="ZPF_left_Link7" content_type="model/stl" file="ZPF_left_Link7.STL" />
+    <mesh name="ZPF_left_Link8" content_type="model/stl" file="ZPF_left_Link8.STL" />
+    <mesh name="2FEG_l_baselink" content_type="model/stl" file="2FEG_l_baselink.STL" />
+    <mesh name="2FEG_l_Link1" content_type="model/stl" file="2FEG_l_Link1.STL" />
+    <mesh name="2FEG_l_Link5" content_type="model/stl" file="2FEG_l_Link5.STL" />
+    <mesh name="2FEG_l_Link2" content_type="model/stl" file="2FEG_l_Link2.STL" />
+    <mesh name="2FEG_l_Link3" content_type="model/stl" file="2FEG_l_Link3.STL" />
+    <mesh name="2FEG_l_Link4" content_type="model/stl" file="2FEG_l_Link4.STL" />
+    <mesh name="2FEG_l_Link6" content_type="model/stl" file="2FEG_l_Link6.STL" />
+    <mesh name="ZPF_right_base_link" content_type="model/stl" file="ZPF_right_base_link.STL" />
+    <mesh name="ZPF_right_Link1" content_type="model/stl" file="ZPF_right_Link1.STL" />
+    <mesh name="ZPF_right_Link2" content_type="model/stl" file="ZPF_right_Link2.STL" />
+    <mesh name="ZPF_right_Link3" content_type="model/stl" file="ZPF_right_Link3.STL" />
+    <mesh name="ZPF_right_Link4" content_type="model/stl" file="ZPF_right_Link4.STL" />
+    <mesh name="ZPF_right_Link5" content_type="model/stl" file="ZPF_right_Link5.STL" />
+    <mesh name="ZPF_right_Link6" content_type="model/stl" file="ZPF_right_Link6.STL" />
+    <mesh name="ZPF_right_Link7" content_type="model/stl" file="ZPF_right_Link7.STL" />
+    <mesh name="ZPF_right_Link8" content_type="model/stl" file="ZPF_right_Link8.STL" />
+    <mesh name="2FEG_r_baselink" content_type="model/stl" file="2FEG_r_baselink.STL" />
+    <mesh name="2FEG_r_Link1" content_type="model/stl" file="2FEG_r_Link1.STL" />
+    <mesh name="2FEG_r_Link5" content_type="model/stl" file="2FEG_r_Link5.STL" />
+    <mesh name="2FEG_r_Link2" content_type="model/stl" file="2FEG_r_Link2.STL" />
+    <mesh name="2FEG_r_Link3" content_type="model/stl" file="2FEG_r_Link3.STL" />
+    <mesh name="2FEG_r_Link4" content_type="model/stl" file="2FEG_r_Link4.STL" />
+    <mesh name="2FEG_r_Link6" content_type="model/stl" file="2FEG_r_Link6.STL" />
+  </asset>
+
+  <worldbody>
+      <site name="world_site_x_axis" pos="0.25 0 0" size="0.25 0.025 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_y_axis" pos="0 0.5 0" size="0.025 0.5 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_z_axis" pos="0 0 1" size="0.025 0.025 1"
+      rgba="1 1 0 0.5" type="box" />
+    <geom type="mesh" rgba="1 1 1 1" mesh="fixed_base_link" />
+    <body name="driven_wheel_left_front_link_v" pos="0.215 0.15 0.085704">
+      <inertial pos="-0.0062589 -0.00011075 -0.022442" quat="0.979789 -0.00520776 0.199956 0.00178258" mass="0.14099" diaginertia="7.93373e-05 6.67906e-05 2.83402e-05" />
+      <joint name="driven_wheel_left_front_joint_v" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+      <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="driven_wheel_left_front_link_v" />
+      <body name="driven_wheel_left_front_link_h" pos="-0.016001 0 -0.0482" quat="0.707105 -0.707108 0 0">
+        <inertial pos="1.14e-07 -1.5917e-10 -3.7309e-05" quat="0 0.707107 0 0.707107" mass="0.011636" diaginertia="8.3204e-06 4.5401e-06 4.54e-06" />
+        <joint name="driven_wheel_left_front_joint_h" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+        <geom type="mesh" rgba="0.84314 0.81569 0.75294 1" mesh="driven_wheel_left_front_link_h" />
+      </body>
+    </body>
+    <body name="driven_wheel_left_behind_link_v" pos="-0.215 0.15 0.085704">
+      <inertial pos="-0.0062589 -0.00011075 -0.022442" quat="0.979789 -0.00520776 0.199956 0.00178258" mass="0.14099" diaginertia="7.93373e-05 6.67906e-05 2.83402e-05" />
+      <joint name="driven_wheel_left_behind_joint_v" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+      <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="driven_wheel_left_behind_link_v" />
+      <body name="driven_wheel_left_behind_link_h" pos="-0.016001 0 -0.0482" quat="0.707105 -0.707108 0 0">
+        <inertial pos="1.14e-07 -1.5917e-10 -3.7309e-05" quat="0 0.707107 0 0.707107" mass="0.011636" diaginertia="8.3204e-06 4.5401e-06 4.54e-06" />
+        <joint name="driven_wheel_left_behind_joint_h" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+        <geom type="mesh" rgba="0.84314 0.81569 0.75294 1" mesh="driven_wheel_left_behind_link_h" />
+      </body>
+    </body>
+    <body name="driven_wheel_right_front_link_v" pos="0.215 -0.15 0.085704">
+      <inertial pos="-0.0062589 -0.00011075 -0.022442" quat="0.979789 -0.00520776 0.199956 0.00178258" mass="0.14099" diaginertia="7.93373e-05 6.67906e-05 2.83402e-05" />
+      <joint name="driven_wheel_right_front_joint_v" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+      <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="driven_wheel_right_front_link_v" />
+      <body name="driven_wheel_right_front_link_h" pos="-0.016001 0 -0.0482" quat="0.707105 -0.707108 0 0">
+        <inertial pos="1.14e-07 -1.5917e-10 -3.7309e-05" quat="0 0.707107 0 0.707107" mass="0.011636" diaginertia="8.3204e-06 4.5401e-06 4.54e-06" />
+        <joint name="driven_wheel_right_front_joint_h" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+        <geom type="mesh" rgba="0.84314 0.81569 0.75294 1" mesh="driven_wheel_right_front_link_h" />
+      </body>
+    </body>
+    <body name="driven_wheel_right_behind_link_v" pos="-0.215 -0.15 0.085704">
+      <inertial pos="-0.0062589 -0.00011075 -0.022442" quat="0.979789 -0.00520776 0.199956 0.00178258" mass="0.14099" diaginertia="7.93373e-05 6.67906e-05 2.83402e-05" />
+      <joint name="driven_wheel_right_behind_joint_v" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+      <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="driven_wheel_right_behind_link_v" />
+      <body name="driven_wheel_right_behind_link_h" pos="-0.016001 0 -0.0482" quat="0.707105 -0.707108 0 0">
+        <inertial pos="1.14e-07 -1.5917e-10 -3.7309e-05" quat="0 0.707107 0 0.707107" mass="0.011636" diaginertia="8.3204e-06 4.5401e-06 4.54e-06" />
+        <joint name="driven_wheel_right_behind_joint_h" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+        <geom type="mesh" rgba="0.84314 0.81569 0.75294 1" mesh="driven_wheel_right_behind_link_h" />
+      </body>
+    </body>
+    <body name="driving_wheel_left_link" pos="0 0.208 0.0845" quat="0.707105 -0.707108 0 0">
+      <inertial pos="-1.0152e-05 -9.7038e-06 -0.00069667" quat="0.27055 0.653263 -0.270639 0.653303" mass="0.11728" diaginertia="0.00052364 0.000283155 0.000283145" />
+      <joint name="driving_wheel_left_joint" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+      <geom type="mesh" rgba="0.84314 0.81569 0.75294 1" mesh="driving_wheel_left_link" />
+    </body>
+    <body name="driving_wheel_right_link" pos="0 -0.208 0.0845" quat="0.707105 -0.707108 0 0">
+      <inertial pos="1.0152e-05 -9.7038e-06 0.00069667" quat="-0.27055 0.653263 0.270639 0.653303" mass="0.11728" diaginertia="0.00052364 0.000283155 0.000283145" />
+      <joint name="driving_wheel_right_joint" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-2000 2000" />
+      <geom type="mesh" rgba="0.84314 0.81569 0.75294 1" mesh="driving_wheel_right_link" />
+    </body>
+    <body name="ankle_pitch_calf_link" pos="0.19155 0 0.294" quat="0.707105 -0.707108 0 0">
+      <inertial pos="0.0040321 -0.3007 0.0026114" quat="0.706944 0.706258 -0.0114149 -0.0360427" mass="8.2502" diaginertia="0.0937234 0.0904714 0.0195532" />
+      <joint name="ankle_pitch_joint" pos="0 0 0" axis="0 0 1" range="-1.1868 0" actuatorfrcrange="-1000 1000" />
+      <geom type="mesh" rgba="0.86667 0.86667 0.8902 1" mesh="ankle_pitch_calf_link" />
+      <body name="knee_pitch_thigh_link" pos="0 -0.38704 0">
+        <inertial pos="-0.0065356 -0.15379 -0.0042654" quat="0.500962 0.49923 -0.500671 0.499133" mass="3.312" diaginertia="0.041003 0.0380503 0.00704647" />
+        <joint name="knee_pitch_joint" pos="0 0 0" axis="0 0 1" range="-0.38397 2.7576" actuatorfrcrange="-1000 1000" />
+        <geom type="mesh" rgba="1 1 1 1" mesh="knee_pitch_thigh_link" />
+        <body name="waist_pitch_waist_link" pos="0 -0.27 0">
+          <inertial pos="0.0057091 -0.043636 0.0033344" quat="0.446399 0.550986 -0.450267 0.542588" mass="5.6895" diaginertia="0.0116446 0.0106037 0.00797888" />
+          <joint name="waist_pitch_joint" pos="0 0 0" axis="0 0 1" range="-1.5708 0.5236" actuatorfrcrange="-1000 1000" />
+          <geom type="mesh" rgba="0.89804 0.91765 0.92941 1" mesh="waist_pitch_waist_link" />
+          <body name="waist_yaw_torso_link" pos="0 -0.1655 0" quat="0.707105 0.707108 0 0">
+            <inertial pos="-0.0335862 -0.0149697 0.267633" quat="0.990356 0.0809562 -0.109299 -0.0263553" mass="7.4734" diaginertia="0.114812 0.107775 0.0216514" />
+            <joint name="waist_yaw_joint" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-1000 1000" />
+            <geom type="mesh" rgba="1 1 1 1" mesh="waist_yaw_torso_link" />
+            <geom pos="-0.061 0 0.3255" type="mesh" rgba="1 0 0 1" mesh="ego" />
+            <geom pos="-0.061 0.0485 0.3255" quat="0.499998 -0.5 -0.5 -0.500002" type="mesh" rgba="0.86667 0.86667 0.8902 1" mesh="ZPF_left_base_link" />
+            <geom pos="-0.061 -0.0485 0.3255" quat="0.499998 0.5 -0.5 0.500002" type="mesh" rgba="0.86667 0.86667 0.8902 1" mesh="ZPF_right_base_link" />
+            <body name="head_yaw_neck_link" pos="-0.041 0 0.46874">
+              <inertial pos="-1.4269e-12 0.0053202 0.055582" quat="0.996389 0.0849055 0 0" mass="0.2237" diaginertia="8.9086e-05 6.60417e-05 4.75383e-05" />
+              <joint name="head_yaw_joint" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-1000 1000" />
+              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="head_yaw_neck_link" />
+              <body name="head_pitch_head_link" pos="0 0 0.06" quat="0.707105 -0.707108 0 0">
+                <inertial pos="0.028328 -0.035178 -0.00055178" quat="0.341678 0.341024 0.618629 0.619884" mass="0.56733" diaginertia="0.00292459 0.002181 0.00172351" />
+                <joint name="head_pitch_joint" pos="0 0 0" axis="0 0 1" range="-0.4014 0.38397" actuatorfrcrange="-1000 1000" />
+                <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="head_pitch_head_link" />
+              </body>
+            </body>
+            <body name="ZPF_left_Link1" pos="-0.0609993 0.227 0.3255" quat="0.499998 -0.5 -0.5 -0.500002">
+              <inertial pos="-0.0011436 -0.015043 -0.030119" quat="0.844305 0.21824 -0.329792 0.361605" mass="0.5885" diaginertia="0.00181256 0.00168623 0.00130576" />
+              <joint name="ZPF_left_Joint1" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-60 60" />
+              <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_left_Link1" />
+              <body name="ZPF_left_Link2" quat="0.499998 -0.5 -0.5 -0.500002">
+                <inertial pos="0.0001255 -0.006489 -0.015096" quat="0.819477 0.573005 0.00653927 -0.00895317" mass="1.37" diaginertia="0.00179931 0.00161547 0.00124841" />
+                <joint name="ZPF_left_Joint2" pos="0 0 0" axis="0 0 1" range="-0.44 3.1" actuatorfrcrange="-60 60" />
+                <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_left_Link2" />
+                <body name="ZPF_left_Link3" pos="0 -0.28998 0" quat="0.499998 0.5 -0.5 0.500002">
+                  <inertial pos="0.0047568 0.0031731 -0.09229" quat="0.980689 -0.000586539 -0.000994299 -0.195569" mass="2.29" diaginertia="0.0375203 0.0373356 0.00188156" />
+                  <joint name="ZPF_left_Joint3" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-30 30" />
+                  <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_left_Link3" />
+                  <body name="ZPF_left_Link4" pos="0.01 0 0" quat="0.707105 0.707108 0 0">
+                    <inertial pos="-0.009542 0.08999 -0.004374" quat="0.65829 0.739271 -0.109826 0.0898413" mass="0.82" diaginertia="0.00287299 0.00275482 0.000697806" />
+                    <joint name="ZPF_left_Joint4" pos="0 0 0" axis="0 0 1" range="-2.27 0" actuatorfrcrange="-30 30" />
+                    <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_left_Link4" />
+                    <body name="ZPF_left_Link5" pos="-0.01 0.3088 0" quat="0.707105 -0.707108 0 0">
+                      <inertial pos="-2.3965e-05 -0.02247 -0.085293" quat="0.98884 0.148981 -0.000138902 0.000989591" mass="1.017" diaginertia="0.00225796 0.00215624 0.000837461" />
+                      <joint name="ZPF_left_Joint5" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-10 10" />
+                      <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_left_Link5" />
+                      <body name="ZPF_left_Link6" quat="0.499998 0.5 -0.5 0.500002">
+                        <inertial pos="0.009154 -0.008103 0.002957" quat="0.605701 0.783956 -0.0837099 0.107384" mass="0.55" diaginertia="0.000378207 0.000321085 0.000271519" />
+                        <joint name="ZPF_left_Joint6" pos="0 0 0" axis="0 0 1" range="-1.22 1.22" actuatorfrcrange="-10 10" />
+                        <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_left_Link6" />
+                        <body name="ZPF_left_Link7" pos="0.01 0 0" quat="0.499998 0.5 -0.5 0.500002">
+                          <inertial pos="0.0109083 0.0661985 0.00282019" quat="0.306763 0.566998 -0.179464 0.743103" mass="0.504456" diaginertia="0.00204817 0.00194443 0.000388619" />
+                          <joint name="ZPF_left_Joint7" pos="0 0 0" axis="0 0 1" range="-2.09 0.49" actuatorfrcrange="-10 10" />
+                          <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_left_Link7" />
+                          <geom pos="0 -0.11462 0" quat="0.707105 0.707108 0 0" type="mesh" rgba="1 1 1 1" mesh="ZPF_left_Link8" />
+                          <geom pos="0 -0.11462 0" quat="0.499998 0.5 -0.500002 0.5" type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_l_baselink" />
+                          <body name="2FEG_l_Link1" pos="0.00900015 -0.19362 -0.0400003" quat="0.499998 0.5 -0.500002 0.5">
+                            <inertial pos="0.0087669 0.009 0.013992" quat="0.961094 0 0.276221 0" mass="0.0024292" diaginertia="6.67751e-07 5.7398e-07 1.10329e-07" />
+                            <joint name="2FEG_l_Joint1" pos="0 0 0" axis="0 -1 0" range="0 0.82" actuatorfrcrange="-1 1" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_l_Link1" />
+                            <body name="2FEG_l_Link5" pos="0.0223 0.003 0.035591">
+                              <inertial pos="0.011864 0.006 0.011367" quat="0.990711 0 0.135985 0" mass="0.0045068" diaginertia="5.39377e-07 5.3203e-07 1.74403e-07" />
+                              <joint name="2FEG_l_Joint5" pos="0 0 0" axis="0 1 0" range="0 0.82" actuatorfrcrange="-1 1" />
+                              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_l_Link5" />
+                            </body>
+                          </body>
+                          <body name="2FEG_l_Link2" pos="0.00900011 -0.19562 -0.0300003" quat="0.499998 0.5 -0.500002 0.5">
+                            <inertial pos="0.0087435 0.009 0.013955" quat="0.961094 0 0.27622 0" mass="0.0038971" diaginertia="7.37897e-07 6.2305e-07 1.40223e-07" />
+                            <joint name="2FEG_l_Joint2" pos="0 0 0" axis="0 -1 0" range="0 0.82" actuatorfrcrange="-1 1" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_l_Link2" />
+                          </body>
+                          <body name="2FEG_l_Link3" pos="0.00899989 -0.19562 0.0299997" quat="0.499998 0.5 -0.500002 0.5">
+                            <inertial pos="-0.0087435 0.009 0.013955" quat="0.961094 0 -0.27622 0" mass="0.0038971" diaginertia="7.37897e-07 6.2305e-07 1.40223e-07" />
+                            <joint name="2FEG_l_Joint3" pos="0 0 0" axis="0 -1 0" range="-0.82 0" actuatorfrcrange="-1 1" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_l_Link3" />
+                          </body>
+                          <body name="2FEG_l_Link4" pos="0.00899985 -0.19362 0.0399997" quat="0.499998 0.5 -0.500002 0.5">
+                            <inertial pos="-0.0087669 0.009 0.013992" quat="0.961094 0 -0.276221 0" mass="0.0024292" diaginertia="6.67751e-07 5.7398e-07 1.10329e-07" />
+                            <joint name="2FEG_l_Joint4" pos="0 0 0" axis="0 -1 0" range="-0.82 0" actuatorfrcrange="-1 1" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_l_Link4" />
+                            <body name="2FEG_l_Link6" pos="-0.0223 0.003 0.035591">
+                              <inertial pos="-0.011864 0.006 0.011367" quat="0.990711 0 -0.135985 0" mass="0.0045068" diaginertia="5.39377e-07 5.3203e-07 1.74403e-07" />
+                              <joint name="2FEG_l_Joint6" pos="0 0 0" axis="0 -1 0" range="0 0.82" actuatorfrcrange="-1 1" />
+                              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_l_Link6" />
+                            </body>
+                          </body>
+                        <site name="left_eef_site" pos="0 0 0" size="0.05" rgba="0 1 0 0.5" type="sphere" /><site name="left_eef_site_xaxis" pos="0.025 0 0" size="0.025 0.0025 0.0025" rgba="0 1 0 0.5" type="box" /><site name="left_eef_site_yaxis" pos="0 0.05 0" size="0.0025 0.05 0.0025" rgba="0 1 0 0.5" type="box" /><site name="left_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1" rgba="0 1 0 0.5" type="box" /></body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+            <body name="ZPF_right_Link1" pos="-0.0609993 -0.227 0.3255" quat="0.499998 0.5 -0.5 0.500002">
+              <inertial pos="-0.0020626 0.01692 -0.02885" quat="0.385735 -0.323474 0.208297 0.838561" mass="0.6469" diaginertia="0.00185533 0.00172965 0.0013305" />
+              <joint name="ZPF_right_Joint1" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-60 60" />
+              <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_right_Link1" />
+              <body name="ZPF_right_Link2" quat="0.499998 -0.5 -0.5 -0.500002">
+                <inertial pos="0.0001168 -0.006557 0.015049" quat="0.573097 0.819411 -0.00902312 0.00671087" mass="1.37" diaginertia="0.00180352 0.00161731 0.00124597" />
+                <joint name="ZPF_right_Joint2" pos="0 0 0" axis="0 0 1" range="-0.44 3.1" actuatorfrcrange="-60 60" />
+                <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_right_Link2" />
+                <body name="ZPF_right_Link3" pos="0 -0.28998 0" quat="0.499998 0.5 0.5 -0.500002">
+                  <inertial pos="0.0047865 -0.003192 -0.092988" quat="0.998771 0.0214691 0.0298719 -0.0332139" mass="2.25" diaginertia="0.017891 0.0176957 0.00168535" />
+                  <joint name="ZPF_right_Joint3" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-30 30" />
+                  <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_right_Link3" />
+                  <body name="ZPF_right_Link4" pos="0.01 0 0" quat="0.707105 0.707108 0 0">
+                    <inertial pos="-0.0094244 0.086907 0.004949" quat="0.737545 0.652816 0.111619 -0.131908" mass="0.86" diaginertia="0.00311165 0.00299425 0.000732129" />
+                    <joint name="ZPF_right_Joint4" pos="0 0 0" axis="0 0 1" range="-2.27 0" actuatorfrcrange="-30 30" />
+                    <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_right_Link4" />
+                    <body name="ZPF_right_Link5" pos="-0.01 0.3088 0" quat="0.707105 -0.707108 0 0">
+                      <inertial pos="-2.4492e-05 0.0226 -0.08511" quat="0.988696 -0.149929 -0.000137587 -0.000923934" mass="1.02" diaginertia="0.00228628 0.0021838 0.000842605" />
+                      <joint name="ZPF_right_Joint5" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-10 10" />
+                      <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_right_Link5" />
+                      <body name="ZPF_right_Link6" quat="0.499998 0.5 -0.5 0.500002">
+                        <inertial pos="0.0091493 -0.008101 -0.00300667" quat="0.787085 0.601877 0.106901 -0.0825433" mass="0.55" diaginertia="0.000379747 0.0003219 0.000272936" />
+                        <joint name="ZPF_right_Joint6" pos="0 0 0" axis="0 0 1" range="-1.22 1.22" actuatorfrcrange="-10 10" />
+                        <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_right_Link6" />
+                        <body name="ZPF_right_Link7" pos="0.01 0 0" quat="0.499998 0.5 0.5 -0.500002">
+                          <inertial pos="-0.0110832 -0.00714979 0.00270285" quat="0.48295 0.652722 -0.389006 0.435188" mass="0.516456" diaginertia="0.00425015 0.0032894 0.00122512" />
+                          <joint name="ZPF_right_Joint7" pos="0 0 0" axis="0 0 1" range="-0.49 2.09" actuatorfrcrange="-10 10" />
+                          <geom type="mesh" rgba="1 1 1 1" mesh="ZPF_right_Link7" />
+                          <geom pos="0 0.11462 0" quat="0.707105 -0.707108 0 0" type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="ZPF_right_Link8" />
+                          <geom pos="0 0.11462 0" quat="0.499998 -0.5 -0.500002 -0.5" type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_r_baselink" />
+                          <body name="2FEG_r_Link1" pos="-0.00899985 0.19362 -0.0400003" quat="0.499998 -0.5 -0.500002 -0.5">
+                            <inertial pos="0.0087669 0.009 0.013992" quat="0.961094 0 0.276221 0" mass="0.0024292" diaginertia="6.67751e-07 5.7398e-07 1.10329e-07" />
+                            <joint name="2FEG_r_Joint1" pos="0 0 0" axis="0 -1 0" range="0 0.82" actuatorfrcrange="-1 1" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_r_Link1" />
+                            <body name="2FEG_r_Link5" pos="0.0223 0.003 0.035591">
+                              <inertial pos="0.011864 0.006 0.011367" quat="0.990711 0 0.135985 0" mass="0.0045068" diaginertia="5.39377e-07 5.3203e-07 1.74403e-07" />
+                              <joint name="2FEG_r_Joint5" pos="0 0 0" axis="0 1 0" range="0 0.82" actuatorfrcrange="-1 1" />
+                              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_r_Link5" />
+                            </body>
+                          </body>
+                          <body name="2FEG_r_Link2" pos="-0.00899989 0.19562 -0.0300003" quat="0.499998 -0.5 -0.500002 -0.5">
+                            <inertial pos="0.0087435 0.009 0.013955" quat="0.961094 0 0.27622 0" mass="0.0038971" diaginertia="7.37897e-07 6.2305e-07 1.40223e-07" />
+                            <joint name="2FEG_r_Joint2" pos="0 0 0" axis="0 -1 0" range="0 0.82" actuatorfrcrange="-1 1" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_r_Link2" />
+                          </body>
+                          <body name="2FEG_r_Link3" pos="-0.00900011 0.19562 0.0299997" quat="0.499998 -0.5 -0.500002 -0.5">
+                            <inertial pos="-0.0087435 0.009 0.013955" quat="0.961094 0 -0.27622 0" mass="0.0038971" diaginertia="7.37897e-07 6.2305e-07 1.40223e-07" />
+                            <joint name="2FEG_r_Joint3" pos="0 0 0" axis="0 -1 0" range="-0.82 0" actuatorfrcrange="-1 1" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_r_Link3" />
+                          </body>
+                          <body name="2FEG_r_Link4" pos="-0.00900015 0.19362 0.0399997" quat="0.499998 -0.5 -0.500002 -0.5">
+                            <inertial pos="-0.0087669 0.009 0.013992" quat="0.961094 0 -0.276221 0" mass="0.0024292" diaginertia="6.67751e-07 5.7398e-07 1.10329e-07" />
+                            <joint name="2FEG_r_Joint4" pos="0 0 0" axis="0 -1 0" range="-0.82 0" actuatorfrcrange="-1 1" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_r_Link4" />
+                            <body name="2FEG_r_Link6" pos="-0.0223 0.003 0.035591">
+                              <inertial pos="-0.011864 0.006 0.011367" quat="0.990711 0 -0.135985 0" mass="0.0045068" diaginertia="5.39377e-07 5.3203e-07 1.74403e-07" />
+                              <joint name="2FEG_r_Joint6" pos="0 0 0" axis="0 -1 0" range="0 0.82" actuatorfrcrange="-1 1" />
+                              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="2FEG_r_Link6" />
+                            </body>
+                          </body>
+                        <site name="right_eef_site" pos="0 0 0" size="0.05" rgba="1 0 0 0.5" type="sphere" /><site name="right_eef_site_xaxis" pos="0.025 0 0" size="0.025 0.0025 0.0025" rgba="1 0 0 0.5" type="box" /><site name="right_eef_site_yaxis" pos="0 0.05 0" size="0.0025 0.05 0.0025" rgba="1 0 0 0.5" type="box" /><site name="right_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1" rgba="1 0 0 0.5" type="box" /></body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+    <!-- setup scene -->
+  <statistic center="1.0 0.7 1.2" extent="0.8" />
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.9 0.9 0.9" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="-140" elevation="-20" />
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="flat" rgb1="0 0 0" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+      rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
+      reflectance="0.2" />
+  </asset>
+  <worldbody>
+    <light pos="1 0 3.5" dir="0 0 -1" directional="true" />
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" />
+  </worldbody>
+</mujoco>

@@ -1,0 +1,46 @@
+sim:
+  xml_path: "configs/sim_replay/mjcfs/agilex_cobot_magic/aloha_new/aloha_new_v00_with_sites.xml"  # 仿真模型路径
+
+  module_file: config.sim_replay.agilex
+  function: get_mjcf_gripper_joint_data
+
+  joints:
+    fl_joint1: left_arm_joint_1_rad
+    fl_joint2: left_arm_joint_2_rad
+    fl_joint3: left_arm_joint_3_rad
+    fl_joint4: left_arm_joint_4_rad
+    fl_joint5: left_arm_joint_5_rad
+    fl_joint6: left_arm_joint_6_rad
+    fr_joint1: right_arm_joint_1_rad
+    fr_joint2: right_arm_joint_2_rad
+    fr_joint3: right_arm_joint_3_rad
+    fr_joint4: right_arm_joint_4_rad
+    fr_joint5: right_arm_joint_5_rad
+    fr_joint6: right_arm_joint_6_rad
+    fl_joint7: fl_joint7
+    fl_joint8: fl_joint8
+    fr_joint7: fr_joint7
+    fr_joint8: fr_joint8
+                                          
+  # 物理世界的限制 (MuJoCo 中的实际行程, 单位: 米或弧度)
+  gripper_config:
+    gripper_name:
+      - left_gripper_open
+      - right_gripper_open
+    gripper_joint_max: 0.04  # 物理完全张开的宽度
+    gripper_joint_min: 0.0   # 物理完全闭合的宽度
+    gripper: True
+
+  camera:   # 相机参数可以从 tools/sim_replay/get_camara.py 中获取
+    lookat_x: 0.322
+    lookat_y: -0.013
+    lookat_z: 0.609
+    distance: 1.971
+    azimuth: 144.5
+    elevation: -34.0
+
+default_version:
+  gripper_config:
+    gripper_value_open: 8.0  # 数据中表示"开"的值
+    gripper_value_close: 0.0 # 数据中表示"关"的值
+

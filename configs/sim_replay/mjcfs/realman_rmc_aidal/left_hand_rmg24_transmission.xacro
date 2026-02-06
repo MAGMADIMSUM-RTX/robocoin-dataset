@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="left_hand_transmissions">
+
+  <!-- 定义传动类型 -->
+  <xacro:property name="transmission_type" value="transmission_interface/SimpleTransmission" />
+
+  <!-- 宏：用于创建传动装置 -->
+  <xacro:macro name="transmission" params="trans_name joint_name actuator_name hardware_interface ">
+    <transmission name="${trans_name}">
+      <type>${transmission_type}</type>
+      <joint name="${joint_name}">
+        <hardwareInterface>${hardware_interface}</hardwareInterface>
+      </joint>
+      <actuator name="${actuator_name}">
+        <hardwareInterface>${hardware_interface}</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+  <!-- 为 Joint_finger1 创建传动装置 -->
+  <xacro:transmission 
+    trans_name="Joint_finger1_trans" 
+    joint_name="l_Joint_finger1" 
+    actuator_name="actuator_finger1" 
+    hardware_interface="PositionJointInterface"
+   />
+
+  <!-- Joint_finger2 是一个从动关节，通过 mimic 实现 -->
+  <!-- 如果 Joint_finger2 由同一个执行器驱动，可以省略其传动定义 -->
+
+   <xacro:transmission 
+     trans_name="Joint_finger2_trans" 
+     joint_name="l_Joint_finger2" 
+     actuator_name="actuator_finger2" 
+     hardware_interface="PositionJointInterface" />
+
+     
+</robot>
+

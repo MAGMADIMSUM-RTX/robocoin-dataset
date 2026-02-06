@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+<robot name="left_hand" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:property name="mesh_path" value="package://overseas_65_b_v_description/meshes/" />
+  <xacro:macro name="visual_collision" params="mesh">
+  <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="${mesh_path}${mesh}" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.75294 0.75294 0.75294 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="${mesh_path}${mesh}"/>
+      </geometry>
+    </collision>
+   </xacro:macro>
+   <link
+    name="l_base_link_rmg24">
+    <inertial>
+      <origin
+        xyz="4.891E-05 -5.4407E-05 0.04689"
+        rpy="0 0 0" />
+      <mass
+        value="0.8" />
+      <inertia
+        ixx="6.6604E-05"
+        ixy="-7.1616E-07"
+        ixz="-3.2951E-07"
+        iyy="0.00011614"
+        iyz="1.1612E-07"
+        izz="0.00012473" />
+    </inertial>
+    <xacro:visual_collision mesh="base_link2.STL" />
+  </link>
+  
+  <link
+    name="l_Link_finger1">
+    <inertial>
+      <origin
+        xyz="-0.0083779 -0.0014014 0.016575"
+        rpy="0 0 0" />
+      <mass
+        value="0.2" />
+      <inertia
+        ixx="4.0976E-06"
+        ixy="2.6578E-08"
+        ixz="-4.8182E-07"
+        iyy="3.8635E-06"
+        iyz="6.1731E-08"
+        izz="1.6965E-06" />
+    </inertial>
+       <xacro:visual_collision mesh="Link_finger1.STL" />
+  </link>
+  
+  <link
+    name="l_Link_finger2">
+    <inertial>
+      <origin
+        xyz="0.0083779 0.001392 0.016575"
+        rpy="0 0 0" />
+      <mass
+        value="0.2" />
+      <inertia
+        ixx="4.0976E-06"
+        ixy="2.6578E-08"
+        ixz="4.8182E-07"
+        iyy="3.8635E-06"
+        iyz="-6.1731E-08"
+        izz="1.6965E-06" />
+    </inertial>
+         <xacro:visual_collision mesh="Link_finger2.STL" />
+  </link>
+  
+  <joint
+    name="l_Joint_finger1"
+    type="prismatic">
+    <origin
+      xyz="0 0 0.0891"
+      rpy="0 0 0" />
+    <parent
+      link="l_base_link_rmg24" />
+    <child
+      link="l_Link_finger1" />
+    <axis
+      xyz="-1 0 0" />
+    <limit
+      lower="0"
+      upper="0.0325"
+      effort="10"
+      velocity="0.1" />
+  </joint>
+  
+   <joint
+    name="l_Joint_finger2"
+    type="prismatic">
+    <origin
+      xyz="0 0 0.0891"
+      rpy="0 0 0" />
+    <parent
+      link="l_base_link_rmg24" />
+    <child
+      link="l_Link_finger2" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="0"
+      upper="0.0325"
+      effort="10"
+      velocity="0.1" />
+    <!-- <mimic joint="l_Joint_finger1" multiplier="1"  offset="0"/> -->
+  </joint>
+</robot>

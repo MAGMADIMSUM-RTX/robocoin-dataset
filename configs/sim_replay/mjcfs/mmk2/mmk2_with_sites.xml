@@ -1,0 +1,248 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="mmk2">
+  <compiler angle="radian" />
+
+  <asset>
+    <mesh name="base_link" content_type="model/stl" file="base_link.STL" />
+    <mesh name="rgt_wheel_link" content_type="model/stl" file="rgt_wheel_link.STL" />
+    <mesh name="lft_wheel_link" content_type="model/stl" file="lft_wheel_link.STL" />
+    <mesh name="slide_link" content_type="model/stl" file="slide_link.STL" />
+    <mesh name="head_yaw_link" content_type="model/stl" file="head_yaw_link.STL" />
+    <mesh name="head_pitch_link" content_type="model/stl" file="head_pitch_link.STL" />
+    <mesh name="arm_base" content_type="model/stl" file="arm_base.STL" />
+    <mesh name="link1" content_type="model/stl" file="link1.STL" />
+    <mesh name="link2" content_type="model/stl" file="link2.STL" />
+    <mesh name="link3" content_type="model/stl" file="link3.STL" />
+    <mesh name="link4" content_type="model/stl" file="link4.STL" />
+    <mesh name="link5" content_type="model/stl" file="link5.STL" />
+    <mesh name="link6" content_type="model/stl" file="link6.STL" />
+    <mesh name="left" content_type="model/stl" file="left.STL" />
+    <mesh name="right" content_type="model/stl" file="right.STL" />
+  </asset>
+
+  <worldbody>
+    <site name="world_site_x_axis" pos="0.25 0 0" size="0.25 0.025 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_y_axis" pos="0 0.5 0" size="0.025 0.5 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_z_axis" pos="0 0 1" size="0.025 0.025 1"
+      rgba="1 1 0 0.5" type="box" />
+    <body name="base_link">
+      <inertial pos="-0.0400314 -0.0226608 0.756257" quat="0.691206 0.000998367 0.00126619 0.722656"
+        mass="33.0267" diaginertia="3.49503 3.44832 0.219772" />
+      <joint name="free_base" type="free" />
+      <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="base_link" />
+      <body name="rgt_wheel_link" pos="0 -0.16325 0.08401" quat="0.499998 0.5 0.5 -0.500002">
+        <inertial pos="5.20143e-06 5.37603e-07 -0.00187111"
+          quat="0.491744 0.508003 -0.491876 0.508113" mass="1.15657"
+          diaginertia="0.00355285 0.00210449 0.00210449" />
+        <joint name="rgt_wheel_joint" pos="0 0 0" axis="0 0 1" range="-3.1416 3.1416"
+          actuatorfrcrange="-6.5 6.5" />
+        <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="rgt_wheel_link" />
+      </body>
+      <body name="lft_wheel_link" pos="0 0.16325 0.08401" quat="0.499998 0.5 0.5 -0.500002">
+        <inertial pos="1.28757e-06 -5.05756e-06 0.00187111"
+          quat="-0.113023 0.698037 0.112851 0.698022" mass="1.15657"
+          diaginertia="0.00355285 0.00210449 0.00210449" />
+        <joint name="lft_wheel_joint" pos="0 0 0" axis="0 0 1" range="-3.1416 3.1416"
+          actuatorfrcrange="-6.5 6.5" />
+        <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="lft_wheel_link" />
+      </body>
+      <body name="slide_link" pos="0.033942 -0.00025 1.406"
+        quat="-2.59734e-06 0.707105 0.707108 -2.59735e-06">
+        <inertial pos="0.0295354 0.0363702 0.0803405" quat="0.866867 -0.253106 -0.10874 0.415516"
+          mass="4.42453" diaginertia="0.0487496 0.0377723 0.021923" />
+        <joint name="slide_joint" pos="0 0 0" axis="0 0 1" type="slide" range="-0.04 0.87"
+          actuatorfrcrange="-5 5" />
+        <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="slide_link" />
+        <geom pos="0.10174 0.02283 0.09475" quat="0.270598 0.270598 0.653281 0.653281" type="mesh"
+          rgba="0.75294 0.75294 0.75294 1" mesh="arm_base" />
+        <geom pos="-0.10174 0.02283 0.09475" quat="0.653281 -0.653281 -0.270598 0.270598"
+          type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="arm_base" />
+        <body name="head_yaw_link" pos="0 0.1735 0.07242" quat="-3.67321e-06 1 0 0">
+          <inertial pos="0.0118491 0.000491255 0.0390231"
+            quat="0.989463 -0.011037 0.141788 0.0271539" mass="0.263127"
+            diaginertia="0.000194427 0.000173858 8.52127e-05" />
+          <joint name="head_yaw_joint" pos="0 0 0" axis="0 0 1" range="-0.5 0.5"
+            actuatorfrcrange="-2 2" />
+          <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="head_yaw_link" />
+          <body name="head_pitch_link" pos="0.00099952 3.1059e-05 0.058"
+            quat="0.507712 -0.507714 0.492167 -0.492165">
+            <inertial pos="0.0244659 -0.108422 -0.00311688"
+              quat="0.722929 0.690781 0.0101323 0.00962016" mass="0.500766"
+              diaginertia="0.00157985 0.00113116 0.000802813" />
+            <joint name="head_pitch_joint" pos="0 0 0" axis="0 0 1" range="-0.16 1.18"
+              actuatorfrcrange="-2 2" />
+            <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="head_pitch_link" />
+          </body>
+        </body>
+        <body name="lftarm_link1" pos="0.184613 0.105703 0.09475"
+          quat="0.270598 0.270598 0.653281 0.653281">
+          <inertial pos="7.9126e-05 -0.002527 -0.0041359"
+            quat="0.696716 0.716558 0.0238919 -0.0236876" mass="0.54639"
+            diaginertia="0.000346294 0.000325437 0.000286269" />
+          <joint name="lftarm_joint1" pos="0 0 0" axis="0 0 1" range="-3.14 2.09"
+            actuatorfrcrange="-18 18" />
+          <geom type="mesh" rgba="0.89804 0.91765 0.92941 1" mesh="link1" />
+          <body name="lftarm_link2" quat="0.135866 0.135867 -0.69393 0.693932">
+            <inertial pos="0.22493 0.0047721 0.008023" quat="-0.210875 0.632473 -0.273056 0.693506"
+              mass="0.64621" diaginertia="0.00516535 0.00505042 0.000418626" />
+            <joint name="lftarm_joint2" pos="0 0 0" axis="0 0 1" range="-2.96 0.17"
+              actuatorfrcrange="-18 18" />
+            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="link2" />
+            <body name="lftarm_link3" pos="0.27009 0 0" quat="0.192144 0 0 -0.981367">
+              <inertial pos="0.16813 -5.5576e-05 0.0031184"
+                quat="0.511278 0.488423 0.489191 0.510617" mass="0.26829"
+                diaginertia="0.0031527 0.0030951 0.000239403" />
+              <joint name="lftarm_joint3" pos="0 0 0" axis="0 0 1" range="-0.087 3.14"
+                actuatorfrcrange="-18 18" />
+              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="link3" />
+              <body name="lftarm_link4" pos="0.29015 0 0"
+                quat="-2.59734e-06 0.707105 2.59735e-06 0.707108">
+                <inertial pos="5.2436e-06 0.00040412 -0.03228"
+                  quat="0.999969 -0.000174762 -0.00792041 -6.98144e-05" mass="0.34876"
+                  diaginertia="0.000423574 0.000412 0.000126826" />
+                <joint name="lftarm_joint4" pos="0 0 0" axis="0 0 1" range="-2.96 2.96"
+                  actuatorfrcrange="-3 3" />
+                <geom type="mesh" rgba="1 1 1 1" mesh="link4" />
+                <body name="lftarm_link5" quat="0.707105 0.707108 0 0">
+                  <inertial pos="8.3328e-06 0.026148 0.002525"
+                    quat="0.531568 0.4663 0.4663 0.531568" mass="0.36132"
+                    diaginertia="0.0004677 0.000432922 0.000178178" />
+                  <joint name="lftarm_joint5" pos="0 0 0" axis="0 0 1" range="-1.74 1.74"
+                    actuatorfrcrange="-3 3" />
+                  <geom type="mesh" rgba="0.89804 0.91765 0.92941 1" mesh="link5" />
+                  <body name="lftarm_link6" pos="0 0.23645 0" quat="0.499998 -0.5 0.5 0.500002">
+                    <inertial pos="-0.0047053 7.3857e-05 -0.12293" mass="0.53855"
+                      diaginertia="5e-05 5e-05 3.85e-05" />
+                    <joint name="lftarm_joint6" pos="0 0 0" axis="0 0 1" range="-3.14 3.14"
+                      actuatorfrcrange="-3 3" />
+                    <geom type="mesh" rgba="0.69804 0.69804 0.69804 1" mesh="link6" />
+                    <body name="lftarm_left" pos="0 0.003 0"
+                      quat="9.38184e-07 0.707105 -9.38187e-07 0.707108">
+                      <inertial pos="-0.049039 -0.0096764 0.00038868"
+                        quat="0.650491 0.0296695 0.0398251 0.757889" mass="0.061803"
+                        diaginertia="2.74809e-05 1.88104e-05 1.19127e-05" />
+                      <joint name="lftarm_endleft" pos="0 0 0" axis="0 1 0" type="slide"
+                        range="-0.04 0" />
+                      <geom type="mesh" rgba="1 1 1 1" mesh="left" />
+                    </body>
+                    <body name="lftarm_right" pos="0 -0.003 0"
+                      quat="9.38184e-07 0.707105 -9.38187e-07 0.707108">
+                      <inertial pos="-0.048742 0.0096369 0.00044322"
+                        quat="0.757393 0.0415116 0.0313705 0.650883" mass="0.0626"
+                        diaginertia="2.79281e-05 1.90181e-05 1.21737e-05" />
+                      <joint name="lftarm_endright" pos="0 0 0" axis="0 1 0" type="slide"
+                        range="0 0.04" />
+                      <geom type="mesh" rgba="1 1 1 1" mesh="right" />
+                    </body>
+                    <site name="left_eef_site" pos="0 0 0" size="0.05" rgba="0 1 0 0.5"
+                      type="sphere" />
+                    <site name="left_eef_site_xaxis" pos="0.025 0 0" size="0.025 0.0025 0.0025"
+                      rgba="0 1 0 0.5" type="box" />
+                    <site name="left_eef_site_yaxis" pos="0 0.05 0" size="0.0025 0.05 0.0025"
+                      rgba="0 1 0 0.5" type="box" />
+                    <site name="left_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1"
+                      rgba="0 1 0 0.5" type="box" />
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="rgtarm_link1" pos="-0.184613 0.105703 0.09475"
+          quat="0.653281 -0.653281 -0.270598 0.270598">
+          <inertial pos="7.9126e-05 -0.002527 -0.0041359"
+            quat="0.696716 0.716558 0.0238919 -0.0236876" mass="0.54639"
+            diaginertia="0.000346294 0.000325437 0.000286269" />
+          <joint name="rgtarm_joint1" pos="0 0 0" axis="0 0 1" range="-3.14 2.09"
+            actuatorfrcrange="-18 18" />
+          <geom type="mesh" rgba="0.89804 0.91765 0.92941 1" mesh="link1" />
+          <body name="rgtarm_link2" quat="0.135866 0.135867 -0.69393 0.693932">
+            <inertial pos="0.22493 0.0047721 0.008023" quat="-0.210875 0.632473 -0.273056 0.693506"
+              mass="0.64621" diaginertia="0.00516535 0.00505042 0.000418626" />
+            <joint name="rgtarm_joint2" pos="0 0 0" axis="0 0 1" range="-2.96 0.17"
+              actuatorfrcrange="-18 18" />
+            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="link2" />
+            <body name="rgtarm_link3" pos="0.27009 0 0" quat="0.192144 0 0 -0.981367">
+              <inertial pos="0.16813 -5.5576e-05 0.0031184"
+                quat="0.511278 0.488423 0.489191 0.510617" mass="0.26829"
+                diaginertia="0.0031527 0.0030951 0.000239403" />
+              <joint name="rgtarm_joint3" pos="0 0 0" axis="0 0 1" range="-0.087 3.14"
+                actuatorfrcrange="-18 18" />
+              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="link3" />
+              <body name="rgtarm_link4" pos="0.29015 0 0"
+                quat="-2.59734e-06 0.707105 2.59735e-06 0.707108">
+                <inertial pos="5.2436e-06 0.00040412 -0.03228"
+                  quat="0.999969 -0.000174762 -0.00792041 -6.98144e-05" mass="0.34876"
+                  diaginertia="0.000423574 0.000412 0.000126826" />
+                <joint name="rgtarm_joint4" pos="0 0 0" axis="0 0 1" range="-2.96 2.96"
+                  actuatorfrcrange="-3 3" />
+                <geom type="mesh" rgba="1 1 1 1" mesh="link4" />
+                <body name="rgtarm_link5" quat="0.707105 0.707108 0 0">
+                  <inertial pos="8.3328e-06 0.026148 0.002525"
+                    quat="0.531568 0.4663 0.4663 0.531568" mass="0.36132"
+                    diaginertia="0.0004677 0.000432922 0.000178178" />
+                  <joint name="rgtarm_joint5" pos="0 0 0" axis="0 0 1" range="-1.74 1.74"
+                    actuatorfrcrange="-3 3" />
+                  <geom type="mesh" rgba="0.89804 0.91765 0.92941 1" mesh="link5" />
+                  <body name="rgtarm_link6" pos="0 0.23645 0" quat="0.499998 -0.5 0.5 0.500002">
+                    <inertial pos="-0.0047053 7.3857e-05 -0.12293" mass="0.53855"
+                      diaginertia="5e-05 5e-05 3.85e-05" />
+                    <joint name="rgtarm_joint6" pos="0 0 0" axis="0 0 1" range="-3.14 3.14"
+                      actuatorfrcrange="-3 3" />
+                    <geom type="mesh" rgba="0.69804 0.69804 0.69804 1" mesh="link6" />
+                    <body name="rgtarm_left" pos="0 0.003 0"
+                      quat="9.38184e-07 0.707105 -9.38187e-07 0.707108">
+                      <inertial pos="-0.049039 -0.0096764 0.00038868"
+                        quat="0.650491 0.0296695 0.0398251 0.757889" mass="0.061803"
+                        diaginertia="2.74809e-05 1.88104e-05 1.19127e-05" />
+                      <joint name="rgtarm_endleft" pos="0 0 0" axis="0 1 0" type="slide"
+                        range="-0.04 0" />
+                      <geom type="mesh" rgba="1 1 1 1" mesh="left" />
+                    </body>
+                    <body name="rgtarm_right" pos="0 -0.003 0"
+                      quat="9.38184e-07 0.707105 -9.38187e-07 0.707108">
+                      <inertial pos="-0.048742 0.0096369 0.00044322"
+                        quat="0.757393 0.0415116 0.0313705 0.650883" mass="0.0626"
+                        diaginertia="2.79281e-05 1.90181e-05 1.21737e-05" />
+                      <joint name="rgtarm_endright" pos="0 0 0" axis="0 1 0" type="slide"
+                        range="0 0.04" />
+                      <geom type="mesh" rgba="1 1 1 1" mesh="right" />
+                    </body>
+                    <site name="right_eef_site" pos="0 0 0" size="0.05" rgba="1 0 0 0.5"
+                      type="sphere" />
+                    <site name="right_eef_site_xaxis" pos="0.025 0 0" size="0.025 0.0025 0.0025"
+                      rgba="1 0 0 0.5" type="box" />
+                    <site name="right_eef_site_yaxis" pos="0 0.05 0" size="0.0025 0.05 0.0025"
+                      rgba="1 0 0 0.5" type="box" />
+                    <site name="right_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1"
+                      rgba="1 0 0 0.5" type="box" />
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <!-- setup scene -->
+  <statistic center="1.0 0.7 1.0" extent="0.8" />
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.9 0.9 0.9" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="-140" elevation="-20" />
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="flat" rgb1="0 0 0" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+      rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
+      reflectance="0.2" />
+  </asset>
+  <worldbody>
+    <light pos="1 0 3.5" dir="0 0 -1" directional="true" />
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" pos="0 0 0" />
+  </worldbody>
+</mujoco>
