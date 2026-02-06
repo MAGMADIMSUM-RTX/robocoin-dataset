@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="o2">
+  <compiler angle="radian" />
+
+  <asset>
+    <mesh name="base_link" content_type="model/stl" file="base_link.STL" />
+    <mesh name="Link1" content_type="model/stl" file="Link1.STL" />
+    <mesh name="Link2" content_type="model/stl" file="Link2.STL" />
+    <mesh name="Link3" content_type="model/stl" file="Link3.STL" />
+    <mesh name="Link4" content_type="model/stl" file="Link4.STL" />
+    <mesh name="Link5" content_type="model/stl" file="Link5.STL" />
+    <mesh name="Link6" content_type="model/stl" file="Link6.STL" />
+    <mesh name="Link7" content_type="model/stl" file="Link7.STL" />
+    <mesh name="Link8" content_type="model/stl" file="Link8.STL" />
+    <mesh name="Link9" content_type="model/stl" file="Link9.STL" />
+    <mesh name="Link10" content_type="model/stl" file="Link10.STL" />
+    <mesh name="Link11" content_type="model/stl" file="Link11.STL" />
+    <mesh name="Link12" content_type="model/stl" file="Link12.STL" />
+    <mesh name="Link13" content_type="model/stl" file="Link13.STL" />
+    <mesh name="Link14" content_type="model/stl" file="Link14.STL" />
+    <mesh name="Link15" content_type="model/stl" file="Link15.STL" />
+    <mesh name="Link16" content_type="model/stl" file="Link16.STL" />
+    <mesh name="Link17" content_type="model/stl" file="Link17.STL" />
+  </asset>
+
+  <worldbody>
+  <site name="world_site_x_axis" pos="0.25 0 0" size="0.25 0.025 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_y_axis" pos="0 0.5 0" size="0.025 0.5 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_z_axis" pos="0 0 1" size="0.025 0.025 1"
+      rgba="1 1 0 0.5" type="box" />
+    <geom type="mesh" rgba="1 1 1 1" mesh="base_link" />
+    <body name="Link1" pos="0.199 0 0.776809" quat="0.707107 -0.707107 0 0">
+      <inertial pos="0.00752611 -0.254405 0.003135" quat="0.70709 0.707072 -0.00593553 -0.00610543" mass="12.1911" diaginertia="0.0439115 0.0378428 0.0287783" />
+      <joint name="1" pos="0 0 0" axis="0 0 1" range="0 1.3956" />
+      <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="Link1" />
+      <body name="Link2" pos="0 -0.422 0" quat="0.707107 0.707107 0 0">
+        <inertial pos="-0.00213458 0.00844409 0.127724" quat="0.742462 -0.00916771 -0.0123633 0.669711" mass="0.807285" diaginertia="0.000889274 0.000868121 0.000437598" />
+        <joint name="2" pos="0 0 0" axis="0 0 1" range="-0.87222 0.87222" />
+        <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="Link2" />
+        <body name="Link3" pos="0.00479081 0.0350092 0.153718" quat="0.706717 0.706717 -0.0234761 -0.0234761">
+          <inertial pos="0.0199314 -0.00405363 0.0352932" quat="0.259706 0.656823 -0.261398 0.657881" mass="0.281386" diaginertia="0.000920224 0.000839255 0.000374128" />
+          <joint name="3" pos="0 0 0" axis="0 0 -1" range="-0.314 0.43611" />
+          <geom type="mesh" rgba="1 1 1 1" mesh="Link3" />
+        </body>
+      </body>
+      <body name="Link4" pos="0 -0.348 -0.1175" quat="2.63367e-09 -1 0 0">
+        <inertial pos="-0.00630002 -4.06344e-05 0.0784944" quat="0.996811 -0.0044229 -0.0795597 -0.00422842" mass="2.41207" diaginertia="0.00350904 0.00333206 0.00320501" />
+        <joint name="4" pos="0 0 0" axis="0 0 1" range="-2.9656 2.9656" />
+        <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="Link4" />
+        <body name="Link5" pos="0 0 0.08875" quat="0.5 0.5 0.5 0.5">
+          <inertial pos="-0.0659449 -4.1676e-06 -0.00346396" quat="-0.00109142 0.917124 -0.00198237 0.398595" mass="0.601315" diaginertia="0.000721915 0.00071654 0.000462243" />
+          <joint name="5" pos="0 0 0" axis="0 0 -1" range="0 1.57" />
+          <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="Link5" />
+          <body name="Link6" pos="-0.063 0 0" quat="0.5 -0.5 -0.5 0.5">
+            <inertial pos="3.0795e-05 0.00181741 0.140425" quat="0.707347 -0.0116612 0.0114269 0.706678" mass="1.25025" diaginertia="0.0055632 0.00546681 0.00170608" />
+            <joint name="6" pos="0 0 0" axis="0 0 1" range="-2.9656 2.9656" />
+            <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="Link6" />
+            <body name="Link7" pos="0 0 0.2255" quat="0.707107 0.707107 0 0">
+              <inertial pos="-5.24367e-06 0.0722722 -0.00180561" quat="0.48753 0.873106 0.00110407 -0.000331218" mass="0.50143" diaginertia="0.000510959 0.000503857 0.000317826" />
+              <joint name="7" pos="0 0 0" axis="0 0 -1" range="0 2.09" />
+              <geom type="mesh" rgba="1 1 1 1" mesh="Link7" />
+              <body name="Link8" pos="0 0.0675 0" quat="0.707107 -0.707107 0 0">
+                <inertial pos="4.97711e-05 0.00270107 0.125047" quat="0.709286 -0.0206493 0.0204748 0.704321" mass="0.946458" diaginertia="0.00276262 0.00272498 0.00105491" />
+                <joint name="8" pos="0 0 0" axis="0 0 1" range="-2.9656 2.9656" />
+                <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="Link8" />
+                <body name="Link9" pos="0 0 0.184" quat="0.707107 0.707107 0 0">
+                  <inertial pos="-6.31292e-05 0.0645759 -0.000355489" quat="0.41315 0.867817 0.250208 -0.116607" mass="0.652707" diaginertia="0.000395768 0.000393247 0.000313049" />
+                  <joint name="9" pos="0 0 0" axis="0 0 -1" range="-1.57 1.57" />
+                  <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="Link9" />
+                  <body name="Link10" pos="0 0.0575 0" quat="0.707107 -0.707107 0 0">
+                    <inertial pos="0.0131012 -0.000374145 0.116616" quat="0.997923 -0.00449973 0.0204858 0.0609003" mass="0.912268" diaginertia="0.000804047 0.000796136 0.000604143" />
+                    <joint name="10" pos="0 0 0" axis="0 0 1" range="-2.9656 2.9656" />
+                    <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="Link10" />
+                  <site name="left_eef_site" pos="0 0 0" size="0.05" rgba="0 1 0 0.5" type="sphere" /><site name="left_eef_site_xaxis" pos="0.025 0 0" size="0.025 0.0025 0.0025" rgba="0 1 0 0.5" type="box" /><site name="left_eef_site_yaxis" pos="0 0.05 0" size="0.0025 0.05 0.0025" rgba="0 1 0 0.5" type="box" /><site name="left_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1" rgba="0 1 0 0.5" type="box" /></body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="Link11" pos="0 -0.348 0.1175" quat="0 0 0 -1">
+        <inertial pos="0.0033308 -9.07007e-05 0.0692242" quat="0.997958 -0.00541122 0.0636223 0.00187292" mass="1.26708" diaginertia="0.002379 0.00212662 0.00200052" />
+        <joint name="11" pos="0 0 0" axis="0 0 1" range="-2.9656 2.9656" />
+        <geom type="mesh" rgba="1 1 1 1" mesh="Link11" />
+        <body name="Link12" pos="0 0 0.08875" quat="0.5 -0.5 -0.5 0.5">
+          <inertial pos="-0.0659449 4.17007e-06 -0.00346396" quat="0.00101103 0.917125 0.00178667 0.398594" mass="0.601315" diaginertia="0.000721915 0.000716541 0.000462243" />
+          <joint name="12" pos="0 0 0" axis="0 0 -1" range="-1.57 0" />
+          <geom type="mesh" rgba="1 1 1 1" mesh="Link12" />
+          <body name="Link13" pos="-0.063 0 0" quat="0.5 -0.5 -0.5 0.5">
+            <inertial pos="-3.07818e-05 0.00181733 0.140425" quat="0.706697 -0.0114304 0.0116561 0.707328" mass="1.25024" diaginertia="0.00556319 0.00546684 0.00170608" />
+            <joint name="13" pos="0 0 0" axis="0 0 1" range="-2.9656 2.9656" />
+            <geom type="mesh" rgba="1 1 1 1" mesh="Link13" />
+            <body name="Link14" pos="0 0 0.2255" quat="0.707105 0.707108 0 0">
+              <inertial pos="5.23771e-06 0.0722722 -0.0018056" quat="0.48753 0.873106 -0.001031 0.000288054" mass="0.50143" diaginertia="0.000510959 0.000503857 0.000317826" />
+              <joint name="14" pos="0 0 0" axis="0 0 -1" range="-2.09 0" />
+              <geom type="mesh" rgba="1 1 1 1" mesh="Link14" />
+              <body name="Link15" pos="0 0.0675 0" quat="0.707107 -0.707107 0 0">
+                <inertial pos="-6.46636e-05 0.00269527 0.125118" quat="0.704346 -0.0204773 0.0206447 0.709261" mass="0.946351" diaginertia="0.00276264 0.00272502 0.00105491" />
+                <joint name="15" pos="0 0 0" axis="0 0 1" range="-2.9656 2.9656" />
+                <geom type="mesh" rgba="1 1 1 1" mesh="Link15" />
+                <body name="Link16" pos="0 0 0.184" quat="0.707107 0.707107 0 0">
+                  <inertial pos="8.2191e-05 0.0357951 -0.00157231" quat="0.615064 -0.252969 0.284094 0.690647" mass="0.203383" diaginertia="0.000176422 0.00017313 0.000101543" />
+                  <joint name="16" pos="0 0 0" axis="0 0 -1" range="-1.57 1.57" />
+                  <geom type="mesh" rgba="1 1 1 1" mesh="Link16" />
+                  <body name="Link17" pos="0 0.052 0" quat="0.707107 -0.707107 0 0">
+                    <inertial pos="-0.0134714 -0.000406903 0.125686" quat="0.998126 -0.00434261 -0.019485 -0.0578475" mass="0.885704" diaginertia="0.000793873 0.000785834 0.000583814" />
+                    <joint name="17" pos="0 0 0" axis="0 0 1" range="-2.9656 2.9656" />
+                    <geom type="mesh" rgba="1 1 1 1" mesh="Link17" />
+                  <site name="right_eef_site" pos="0 0 0" size="0.05" rgba="1 0 0 0.5" type="sphere" /><site name="right_eef_site_xaxis" pos="0.025 0 0" size="0.025 0.0025 0.0025" rgba="1 0 0 0.5" type="box" /><site name="right_eef_site_yaxis" pos="0 0.05 0" size="0.0025 0.05 0.0025" rgba="1 0 0 0.5" type="box" /><site name="right_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1" rgba="1 0 0 0.5" type="box" /></body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <!-- setup scene -->
+  <statistic center="1.0 0.7 1.0" extent="0.8" />
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.9 0.9 0.9" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="-140" elevation="-20" />
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="flat" rgb1="0 0 0" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+      rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
+      reflectance="0.2" />
+  </asset>
+  <worldbody>
+    <light pos="1 0 3.5" dir="0 0 -1" directional="true" />
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" pos="0 0 0" />
+  </worldbody>
+</mujoco>

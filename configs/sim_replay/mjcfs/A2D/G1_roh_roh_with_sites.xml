@@ -1,0 +1,244 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="genie">
+  <compiler angle="radian" />
+
+  <asset>
+    <mesh name="base_link" content_type="model/obj" file="base_link.obj" />
+    <mesh name="if_proximal_link" content_type="model/obj" file="if_proximal_link.obj" />
+    <mesh name="if_distal_link" content_type="model/obj" file="if_distal_link.obj" />
+    <mesh name="mf_proximal_link" content_type="model/obj" file="mf_proximal_link.obj" />
+    <mesh name="mf_distal_link" content_type="model/obj" file="mf_distal_link.obj" />
+    <mesh name="rf_proximal_link" content_type="model/obj" file="rf_proximal_link.obj" />
+    <mesh name="rf_distal_link" content_type="model/obj" file="rf_distal_link.obj" />
+    <mesh name="lf_proximal_link" content_type="model/obj" file="lf_proximal_link.obj" />
+    <mesh name="lf_distal_link" content_type="model/obj" file="lf_distal_link.obj" />
+    <mesh name="th_root_link" content_type="model/obj" file="th_root_link.obj" />
+    <mesh name="th_proximal_link" content_type="model/obj" file="th_proximal_link.obj" />
+    <mesh name="th_distal_link" content_type="model/obj" file="th_distal_link.obj" />
+  </asset>
+
+  <worldbody>
+  <site name="world_site_x_axis" pos="0.25 0 0" size="0.25 0.025 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_y_axis" pos="0 0.5 0" size="0.025 0.5 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_z_axis" pos="0 0 1" size="0.025 0.025 1"
+      rgba="1 1 0 0.5" type="box" />
+    <body name="body_link1" pos="0 0 0.6485">
+      <inertial pos="0.0338352 -0.00248044 0.000838431" quat="0.70654 0.707661 -0.00251284 0.00337775" mass="3.26275" diaginertia="0.0128303 0.011172 0.00610409" />
+      <joint name="idx01_body_joint1" pos="0 0 0" axis="0 0 1" type="slide" range="0 0.55" actuatorfrcrange="-100 100" />
+      <body name="body_link2" pos="0.131 0 0" quat="0.707107 -0.707107 0 0">
+        <inertial pos="0.202202 0.00892157 0.002094" quat="-0.309612 0.669057 -0.144642 0.659986" mass="8.28389" diaginertia="0.0566071 0.0514324 0.0241845" />
+        <joint name="idx02_body_joint2" pos="0 0 0" axis="0 0 1" range="0 1.5708" actuatorfrcrange="-100 100" />
+        <body name="head_link1" pos="0 -0.441 0" quat="0.707107 0.707107 0 0">
+          <inertial pos="0.0446068 0.00241753 0.0528374" quat="0.38837 0.389207 -0.612687 0.567716" mass="0.414343" diaginertia="0.000173888 0.000155933 0.000117565" />
+          <joint name="idx11_head_joint1" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-50 50" />
+          <body name="head_link2" pos="0.050238 0 0.060065" quat="0.707107 -0.707107 0 0">
+            <inertial pos="0.0257009 0.0316254 -3.7739e-05" quat="0.661342 0.654801 0.258526 0.258893" mass="0.707064" diaginertia="0.00237749 0.00185 0.00168017" />
+            <joint name="idx12_head_joint2" pos="0 0 0" axis="0 0 1" range="-0.349066 0.523599" actuatorfrcrange="-50 50" />
+          </body>
+        </body>
+        <body name="arm_l_link1" pos="0 -0.305 0.2109">
+          <inertial pos="-0.0012655 -0.00043778 -0.018388" quat="0.999377 0.00141724 -0.00704567 0.0345516" mass="0.4936" diaginertia="0.00075451 0.000657089 0.00031839" />
+          <joint name="idx21_arm_l_joint1" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-60 60" />
+          <geom size="0.0557927 0.0832103" pos="0.00268144 0.000613378 -0.0407112" quat="0.809017 0 0 -0.587785" type="cylinder" rgba="1 1 1 1" />
+          <body name="arm_l_link2" quat="0.5 -0.5 -0.5 0.5">
+            <inertial pos="5.3037e-05 -0.078258 0.0047084" quat="0.4655 0.507294 -0.534234 0.490467" mass="0.46245" diaginertia="0.000728062 0.000656998 0.00043243" />
+            <joint name="idx22_arm_l_joint2" pos="0 0 0" axis="0 0 1" range="-2.09 1.48" actuatorfrcrange="-60 60" />
+            <geom size="0.0630242 0.0904296" pos="0 -0.0440621 0.000976562" quat="0.707107 0.707107 0 0" type="cylinder" rgba="1 1 1 1" />
+            <body name="arm_l_link3" pos="0 -0.305 0" quat="-0.5 -0.5 -0.5 0.5">
+              <inertial pos="-0.0012032 0.0008714 -0.055265" quat="0.716744 0.00286354 -0.0130205 0.697209" mass="0.50026" diaginertia="0.00142764 0.00130171 0.000335118" />
+              <joint name="idx23_arm_l_joint3" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-60 60" />
+              <geom size="0.0542326 0.110349" pos="-0.00274505 0.000636008 -0.0722394" quat="0 0.309017 0.951057 0" type="cylinder" rgba="1 1 1 1" />
+              <body name="arm_l_link4" quat="0 0 -0.707107 0.707107">
+                <inertial pos="3.7035e-05 -0.06248 0.0025377" quat="0.497379 0.504086 -0.500364 0.498144" mass="0.27473" diaginertia="0.00031239 0.000292842 0.000188518" />
+                <joint name="idx24_arm_l_joint4" pos="0 0 0" axis="0 0 1" range="-1.48 1.48" actuatorfrcrange="-60 60" />
+                <geom size="0.0578917 0.0774777" pos="0 -0.038179 -0.00439453" quat="0.707107 0.707107 0 0" type="cylinder" rgba="1 1 1 1" />
+                <body name="arm_l_link5" pos="0 -0.1975 0" quat="0 0 0.707107 -0.707107">
+                  <inertial pos="-7.9404e-07 -0.00023094 -0.024143" quat="0.706596 -0.0269081 0.0270445 0.706588" mass="0.25139" diaginertia="0.000289006 0.00023516 0.000129764" />
+                  <joint name="idx25_arm_l_joint5" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-30 30" />
+                  <geom size="0.0456146 0.067262" pos="0.00013162 -5.83555e-05 -0.0333058" quat="0.951057 0 0 -0.309017" type="cylinder" rgba="1 1 1 1" />
+                  <body name="arm_l_link6" quat="0.707107 -0.707107 0 0">
+                    <inertial pos="1.769e-06 -0.086692 0.0025571" quat="0.47333 0.529128 -0.524871 0.469567" mass="0.26634" diaginertia="0.00032677 0.000314339 0.000142371" />
+                    <joint name="idx26_arm_l_joint6" pos="0 0 0" axis="0 0 1" range="-1.74 1.74" actuatorfrcrange="-30 30" />
+                    <geom size="0.0485074 0.09083" pos="0.000254946 -0.0554777 -0.00193943" quat="0.522838 -0.476211 -0.477658 -0.521255" type="cylinder" rgba="1 1 1 1" />
+                    <body name="arm_l_end_link" pos="0 -0.1805 0" quat="0.707107 0.707107 0 0">
+                      <inertial pos="-0.0223331 0.00108176 -0.00913226" quat="0.0326108 0.79204 -0.00936036 0.609525" mass="0.113402" diaginertia="0.000137819 0.000117304 3.86421e-05" />
+                      <joint name="idx27_arm_l_joint7" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-30 30" />
+                      <geom size="0.0308 0.023" pos="-4.55295e-05 -0.00230047 -0.0225" quat="0 0 1 0" type="cylinder" rgba="1 1 1 1" />
+                      <geom pos="0 0 0" quat="-0.5 -0.5 -0.5 0.5" type="mesh" mesh="base_link" />
+                      <body name="hand_l_if_proximal_link" pos="0.030843 -0.0024802 0.11269" quat="-0.501222 -0.455658 -0.540717 0.498775">
+                        <inertial pos="-0.0160192 -9.85142e-05 -0.00754047" quat="6.36225e-05 0.608518 4.02912e-05 0.79354" mass="0.00155055" diaginertia="1.69649e-07 1.54822e-07 6.13745e-08" />
+                        <joint name="hand_l_index_joint1" pos="0 0 0" axis="0 1 0" />
+                        <geom type="mesh" mesh="if_proximal_link" />
+                        <body name="hand_l_if_distal_link" pos="-0.034061 0 -0.011405" quat="1 1.289e-05 -6.57003e-10 -5.097e-05">
+                          <inertial pos="-0.0140538 -9.47216e-05 -0.0187678" quat="0.944307 5.9785e-06 0.329065 -2.08334e-06" mass="0.00416344" diaginertia="5.82315e-07 5.74333e-07 6.77387e-08" />
+                          <joint name="hand_l_index_joint2" pos="0 0 0" axis="0 1 0" />
+                          <geom type="mesh" mesh="if_distal_link" />
+                        </body>
+                      </body>
+                      <body name="hand_l_mf_proximal_link" pos="0.010647 -0.0067882 0.11597" quat="-0.496678 -0.496678 -0.5033 0.5033">
+                        <inertial pos="0.0383189 -0.000510921 -0.0158668" quat="0.154673 0.637313 0.100585 0.748191" mass="0.10211" diaginertia="0.00032431 0.000264216 9.18208e-05" />
+                        <joint name="hand_l_middle_joint1" pos="0 0 0" axis="0 1 0" />
+                        <geom type="mesh" mesh="mf_proximal_link" />
+                        <body name="hand_l_mf_distal_link" pos="-0.038293 0 -0.014673">
+                          <inertial pos="-0.0142677 9.50657e-05 -0.0186056" quat="0.942408 4.79347e-06 0.334466 -1.70123e-06" mass="0.00416341" diaginertia="5.8231e-07 5.74328e-07 6.77385e-08" />
+                          <joint name="hand_l_middle_joint2" pos="0 0 0" axis="0 1 0" />
+                          <geom type="mesh" mesh="mf_distal_link" />
+                        </body>
+                      </body>
+                      <body name="hand_l_rf_proximal_link" pos="-0.0091941 -0.0060382 0.11324" quat="-0.513948 -0.513948 -0.485651 0.485651">
+                        <inertial pos="-0.0157473 -9.85177e-05 -0.00809297" quat="6.79741e-05 0.594627 3.87499e-05 0.804002" mass="0.00155058" diaginertia="1.69652e-07 1.54825e-07 6.13748e-08" />
+                        <joint name="hand_l_ring_joint1" pos="0 0 0" axis="0 1 0" />
+                        <geom type="mesh" mesh="rf_proximal_link" />
+                        <body name="hand_l_rf_distal_link" pos="-0.033643 0 -0.012583" quat="1 1.4655e-05 -7.39931e-10 -5.049e-05">
+                          <inertial pos="-0.0127271 -9.38053e-05 -0.0196846" quat="0.955067 3.19757e-05 0.296389 0.000120019" mass="0.00416255" diaginertia="5.82042e-07 5.74059e-07 6.77466e-08" />
+                          <joint name="hand_l_ring_joint2" pos="0 0 0" axis="0 1 0" />
+                          <geom type="mesh" mesh="rf_distal_link" />
+                        </body>
+                      </body>
+                      <body name="hand_l_lf_proximal_link" pos="-0.02946 -0.0034771 0.10947" quat="-0.507485 -0.548721 -0.445987 0.492401">
+                        <inertial pos="-0.014089 0.000100219 -0.0073978" quat="0 0.590053 0 0.807364" mass="0.00136673" diaginertia="1.27487e-07 1.12813e-07 5.56915e-08" />
+                        <joint name="hand_l_little_joint1" pos="0 0 0" axis="0 1 0" />
+                        <geom type="mesh" mesh="lf_proximal_link" />
+                        <body name="hand_l_lf_distal_link" pos="-0.029737 5.0315e-05 -0.011632" quat="1 1.05275e-05 0 0">
+                          <inertial pos="-0.0083485 -0.000122866 -0.0140829" quat="0.960078 -0.00362187 0.279631 0.00657346" mass="0.00263003" diaginertia="1.59093e-07 1.53222e-07 3.74446e-08" />
+                          <joint name="hand_l_little_joint2" pos="0 0 0" axis="0 1 0" />
+                          <geom type="mesh" mesh="lf_distal_link" />
+                        </body>
+                      </body>
+                      <body name="hand_l_th_root_link" pos="0.020016 0.0232 0.04608" quat="-0.548573 -0.438865 -0.44617 0.554434">
+                        <inertial pos="0.00191344 0.00533361 -0.00206873" quat="0.710156 0.619804 0.190258 0.274453" mass="0.00219895" diaginertia="2.21369e-07 1.74607e-07 9.72681e-08" />
+                        <joint name="hand_l_thumb_joint0" pos="0 0 0" axis="-1 0 0" range="-0.035 1.605" />
+                        <geom type="mesh" mesh="th_root_link" />
+                        <body name="hand_l_th_proximal_link" pos="-0.0067545 0.02098 -0.0027" quat="0.999979 0 0 0.00646545">
+                          <inertial pos="-0.0180334 0.00795835 -0.000164754" quat="0.107106 0.698915 -0.107327 0.698947" mass="0.00666243" diaginertia="2.21298e-06 2.04055e-06 3.25226e-07" />
+                          <joint name="hand_l_thumb_joint1" pos="0 0 0" axis="0 0 -1" />
+                          <geom type="mesh" mesh="th_proximal_link" />
+                          <body name="hand_l_th_distal_link" pos="-0.050881 0.013011 -0.0020153">
+                            <inertial pos="-0.00825362 0.00781058 0.00189926" quat="0.611565 0.611505 0.354992 0.355009" mass="0.00503403" diaginertia="3.0114e-07 2.35219e-07 1.66173e-07" />
+                            <joint name="hand_l_thumb_joint2" pos="0 0 0" axis="0 0 -1" />
+                            <geom type="mesh" mesh="th_distal_link" />
+                          </body>
+                        </body>
+                      </body>
+                    <site name="left_eef_site" pos="0 0 0" size="0.05" rgba="0 1 0 0.5" type="sphere" /><site name="left_eef_site_xaxis" pos="0.025 0 0" size="0.025 0.0025 0.0025" rgba="0 1 0 0.5" type="box" /><site name="left_eef_site_yaxis" pos="0 0.05 0" size="0.0025 0.05 0.0025" rgba="0 1 0 0.5" type="box" /><site name="left_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1" rgba="0 1 0 0.5" type="box" /></body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="arm_r_link1" pos="0 -0.305 -0.213" quat="0 0 -1 0">
+          <inertial pos="0.0012679 -0.0001581 -0.018109" quat="0.999913 0.00172272 0.00210705 -0.0129351" mass="0.4936" diaginertia="0.00075403 0.000660442 0.000315518" />
+          <joint name="idx61_arm_r_joint1" pos="0 0 0" axis="0 0 1" range="-3.14 3.14" actuatorfrcrange="-60 60" />
+          <geom size="0.054839 0.0832136" pos="0.00018724 -0.00200487 -0.0407119" quat="0 -0.809017 -0.587785 0" type="cylinder" rgba="1 1 1 1" />
+          <body name="arm_r_link2" quat="0.5 -0.5 0.5 -0.5">
+            <inertial pos="-0.00044207 -0.082298 0.00019486" quat="0.476302 0.549206 -0.503867 0.466506" mass="0.41662" diaginertia="0.00058032 0.00054597 0.00039261" />
+            <joint name="idx62_arm_r_joint2" pos="0 0 0" axis="0 0 1" range="-1.48 2.09" actuatorfrcrange="-60 60" />
+            <geom size="0.0630242 0.0904296" pos="0 -0.0440621 0.000976562" quat="0.707107 0.707107 0 0" type="cylinder" rgba="1 1 1 1" />
+            <body name="arm_r_link3" pos="0 -0.305 0" quat="0.5 0.5 -0.5 0.5">
+              <inertial pos="0.0010558 4.4416e-05 -0.056128" quat="0.702309 0.0145002 -0.00484504 0.711708" mass="0.49413" diaginertia="0.00142079 0.00134067 0.000375087" />
+              <joint name="idx63_arm_r_joint3" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-60 60" />
+              <geom size="0.0521616 0.110307" pos="0.000655993 -2.2629e-05 -0.072193" type="cylinder" rgba="1 1 1 1" />
+              <body name="arm_r_link4" quat="0 0 -0.707107 0.707107">
+                <inertial pos="2.4212e-05 -0.06248 0.002536" quat="0.49733 0.504026 -0.500463 0.498154" mass="0.27473" diaginertia="0.00031239 0.000292832 0.000188508" />
+                <joint name="idx64_arm_r_joint4" pos="0 0 0" axis="0 0 1" range="-1.48 1.48" actuatorfrcrange="-60 60" />
+                <geom size="0.0578917 0.0774777" pos="0 -0.038179 -0.00439453" quat="0.707107 0.707107 0 0" type="cylinder" rgba="1 1 1 1" />
+                <body name="arm_r_link5" pos="0 -0.1975 0" quat="0 0 0.707107 -0.707107">
+                  <inertial pos="2.6223e-06 -0.00023041 -0.024141" quat="0.706561 -0.0269128 0.0270485 0.706623" mass="0.25139" diaginertia="0.000288996 0.00023516 0.000129754" />
+                  <joint name="idx65_arm_r_joint5" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-30 30" />
+                  <geom size="0.0456203 0.067119" pos="-0.000222555 -4.22748e-05 -0.0334495" type="cylinder" rgba="1 1 1 1" />
+                  <body name="arm_r_link6" quat="0.707107 -0.707107 0 0">
+                    <inertial pos="5.0382e-06 -0.086696 0.002556" quat="0.473321 0.529129 -0.524875 0.46957" mass="0.26634" diaginertia="0.00032676 0.000314339 0.000142371" />
+                    <joint name="idx66_arm_r_joint6" pos="0 0 0" axis="0 0 1" range="-1.74 1.74" actuatorfrcrange="-30 30" />
+                    <geom size="0.0485715 0.0913624" pos="-1.77825e-05 -0.055076 -0.00174472" quat="0.521813 -0.477274 -0.478144 -0.520863" type="cylinder" rgba="1 1 1 1" />
+                    <body name="arm_r_end_link" pos="0 -0.1805 0" quat="0.707107 0.707107 0 0">
+                      <inertial pos="-0.0154537 -0.00117053 -0.0115051" quat="-0.0411086 0.79414 0.0177689 0.606082" mass="0.098175" diaginertia="8.57858e-05 7.11584e-05 3.0341e-05" />
+                      <joint name="idx67_arm_r_joint7" pos="0 0 0" axis="0 0 1" range="-3.1 3.1" actuatorfrcrange="-30 30" />
+                      <geom size="0.0308 0.023" pos="-4.55295e-05 -0.00230047 -0.0225" quat="0 0 1 0" type="cylinder" rgba="1 1 1 1" />
+                      <geom pos="0 0 0" quat="0.5 0.5 0.5 -0.5" type="mesh" mesh="base_link" />
+                      <body name="hand_r_if_proximal_link" pos="-0.030673 -0.0027221 0.11269" quat="0.498775 0.540717 0.455658 -0.501222">
+                        <inertial pos="-0.0160205 9.8103e-05 -0.0075405" quat="4.12323e-05 0.608528 6.82842e-05 0.793533" mass="0.00155087" diaginertia="1.6968e-07 1.54849e-07 6.138e-08" />
+                        <joint name="hand_r_index_joint1" pos="0 0 0" axis="0 1 0" />
+                        <geom type="mesh" mesh="if_proximal_link" />
+                        <body name="hand_r_if_distal_link" pos="-0.034061 0 -0.011405" quat="1 -1.289e-05 -6.57003e-10 5.097e-05">
+                          <inertial pos="-0.0140542 9.48701e-05 -0.0187681" quat="0.944312 -3.95537e-05 0.329052 -0.000122995" mass="0.00416402" diaginertia="5.82485e-07 5.74504e-07 6.77443e-08" />
+                          <joint name="hand_r_index_joint2" pos="0 0 0" axis="0 1 0" />
+                          <geom type="mesh" mesh="if_distal_link" />
+                        </body>
+                      </body>
+                      <body name="hand_r_mf_proximal_link" pos="-0.010478 -0.0070301 0.11597" quat="0.5033 0.5033 0.496678 -0.496678">
+                        <inertial pos="-0.0178813 -9.99812e-05 -0.00978209" quat="7.29098e-05 0.577723 4.29064e-05 0.816233" mass="0.00189595" diaginertia="2.46887e-07 2.34143e-07 7.72053e-08" />
+                        <joint name="hand_r_middle_joint1" pos="0 0 0" axis="0 1 0" />
+                        <geom type="mesh" mesh="mf_proximal_link" />
+                        <body name="hand_r_mf_distal_link" pos="-0.038293 0 -0.014673">
+                          <inertial pos="-0.0142681 -9.48989e-05 -0.0186058" quat="0.942412 -4.01794e-05 0.334454 -0.000127874" mass="0.00416397" diaginertia="5.82467e-07 5.74486e-07 6.77441e-08" />
+                          <joint name="hand_r_middle_joint2" pos="0 0 0" axis="0 1 0" />
+                          <geom type="mesh" mesh="mf_distal_link" />
+                        </body>
+                      </body>
+                      <body name="hand_r_rf_proximal_link" pos="0.0093636 -0.0062802 0.11324" quat="0.485651 0.485651 0.513948 -0.513948">
+                        <inertial pos="-0.0157485 9.81656e-05 -0.00809309" quat="4.04554e-05 0.594638 6.95411e-05 0.803994" mass="0.00155087" diaginertia="1.6968e-07 1.54849e-07 6.13806e-08" />
+                        <joint name="hand_r_ring_joint1" pos="0 0 0" axis="0 1 0" />
+                        <geom type="mesh" mesh="rf_proximal_link" />
+                        <body name="hand_r_rf_distal_link" pos="-0.033643 0 -0.012583" quat="1 -1.4655e-05 -7.39931e-10 5.049e-05">
+                          <inertial pos="-0.0127273 9.43186e-05 -0.019685" quat="0.955066 -9.57593e-06 0.296392 2.97176e-06" mass="0.00416284" diaginertia="5.82045e-07 5.7406e-07 6.77476e-08" />
+                          <joint name="hand_r_ring_joint2" pos="0 0 0" axis="0 1 0" />
+                          <geom type="mesh" mesh="rf_distal_link" />
+                        </body>
+                      </body>
+                      <body name="hand_r_lf_proximal_link" pos="0.029629 -0.003719 0.10947" quat="0.492401 0.445987 0.548721 -0.507485">
+                        <inertial pos="-0.014089 -9.99368e-05 -0.00739805" quat="0 0.590054 0 0.807364" mass="0.00136675" diaginertia="1.27483e-07 1.12814e-07 5.56931e-08" />
+                        <joint name="hand_r_little_joint1" pos="0 0 0" axis="0 1 0" />
+                        <geom type="mesh" mesh="lf_proximal_link" />
+                        <body name="hand_r_lf_distal_link" pos="-0.029737 -5.0315e-05 -0.011632" quat="1 -1.05275e-05 0 0">
+                          <inertial pos="-0.00834877 0.000122937 -0.0140838" quat="0.960073 0.00366151 0.279652 -0.00641542" mass="0.00263004" diaginertia="1.59094e-07 1.53222e-07 3.74422e-08" />
+                          <joint name="hand_r_little_joint2" pos="0 0 0" axis="0 1 0" />
+                          <geom type="mesh" mesh="lf_distal_link" />
+                        </body>
+                      </body>
+                      <body name="hand_r_th_root_link" pos="-0.019846 0.022958 0.046082" quat="0.555074 0.445374 0.439652 -0.547942">
+                        <inertial pos="0.00191345 -0.00532764 -0.00208403" quat="0.618783 0.711045 -0.27418 -0.190652" mass="0.00219895" diaginertia="2.21368e-07 1.74606e-07 9.72678e-08" />
+                        <joint name="hand_r_thumb_joint0" pos="0 0 0" axis="1 0 0" range="-0.035 1.605" />
+                        <geom type="mesh" mesh="th_root_link" />
+                        <body name="hand_r_th_proximal_link" pos="-0.0067545 -0.020973 -0.0027602" quat="-9.21517e-06 0.0064463 0.999978 0.00144642">
+                          <inertial pos="0.0173186 -0.0080489 -0.00337072" quat="0.152708 0.693916 -0.0697608 0.70021" mass="0.00415628" diaginertia="1.17599e-06 1.09578e-06 1.77332e-07" />
+                          <joint name="hand_r_thumb_joint1" pos="0 0 0" axis="0 0 -1" />
+                          <geom type="mesh" mesh="th_proximal_link" />
+                          <body name="hand_r_th_distal_link" pos="0.050881 -0.013011 0.0020153">
+                            <inertial pos="0.00825371 -0.00781063 -0.00189928" quat="0.611561 0.611494 0.355018 0.355008" mass="0.00503423" diaginertia="3.0116e-07 2.35242e-07 1.6618e-07" />
+                            <joint name="hand_r_thumb_joint2" pos="0 0 0" axis="0 0 -1" />
+                            <geom type="mesh" mesh="th_distal_link" />
+                          </body>
+                        </body>
+                      </body>
+                    <site name="right_eef_site" pos="0 0 0" size="0.05" rgba="1 0 0 0.5" type="sphere" /><site name="right_eef_site_xaxis" pos="0.025 0 0" size="0.025 0.0025 0.0025" rgba="1 0 0 0.5" type="box" /><site name="right_eef_site_yaxis" pos="0 0.05 0" size="0.0025 0.05 0.0025" rgba="1 0 0 0.5" type="box" /><site name="right_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1" rgba="1 0 0 0.5" type="box" /></body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <!-- setup scene -->
+  <statistic center="1.0 0.7 1.0" extent="0.8" />
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.9 0.9 0.9" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="-140" elevation="-20" />
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="flat" rgb1="0 0 0" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+      rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
+      reflectance="0.2" />
+  </asset>
+  <worldbody>
+    <light pos="1 0 3.5" dir="0 0 -1" directional="true" />
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" pos="0 0 0" />
+  </worldbody>
+</mujoco>

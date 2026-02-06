@@ -1,0 +1,257 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="galbot_one_golf">
+  <compiler angle="radian" />
+
+  <asset>
+    <mesh name="omni_chassis_base_link_convex_hull" content_type="model/stl"
+      file="omni_chassis_base_link_convex_hull.stl" />
+    <mesh name="leg_link1_convex_hull" content_type="model/stl" file="leg_link1_convex_hull.stl" />
+    <mesh name="leg_link2_convex_hull" content_type="model/stl" file="leg_link2_convex_hull.stl" />
+    <mesh name="leg_link3_convex_hull" content_type="model/stl" file="leg_link3_convex_hull.stl" />
+    <mesh name="leg_link4_convex_hull" content_type="model/stl" file="leg_link4_convex_hull.stl" />
+    <mesh name="leg_link5_convex_hull" content_type="model/stl" file="leg_link5_convex_hull.stl" />
+    <mesh name="torso_base_link_convex_hull" content_type="model/stl"
+      file="torso_base_link_convex_hull.stl" />
+    <mesh name="head_link1_convex_hull" content_type="model/stl" file="head_link1_convex_hull.stl" />
+    <mesh name="head_link2_convex_hull" content_type="model/stl" file="head_link2_convex_hull.stl" />
+    <mesh name="right_arm_link1_convex_hull" content_type="model/stl"
+      file="right_arm_link1_convex_hull.stl" />
+    <mesh name="right_arm_link2_convex_hull" content_type="model/stl"
+      file="right_arm_link2_convex_hull.stl" />
+    <mesh name="right_arm_link3_convex_hull" content_type="model/stl"
+      file="right_arm_link3_convex_hull.stl" />
+    <mesh name="right_arm_link4_convex_hull" content_type="model/stl"
+      file="right_arm_link4_convex_hull.stl" />
+    <mesh name="right_arm_link5_convex_hull" content_type="model/stl"
+      file="right_arm_link5_convex_hull.stl" />
+    <mesh name="right_arm_link6_convex_hull" content_type="model/stl"
+      file="right_arm_link6_convex_hull.stl" />
+    <mesh name="right_arm_link7_convex_hull" content_type="model/stl"
+      file="right_arm_link7_convex_hull.stl" />
+    <mesh name="left_arm_link1_convex_hull" content_type="model/stl"
+      file="left_arm_link1_convex_hull.stl" />
+    <mesh name="left_arm_link2_convex_hull" content_type="model/stl"
+      file="left_arm_link2_convex_hull.stl" />
+    <mesh name="left_arm_link3_convex_hull" content_type="model/stl"
+      file="left_arm_link3_convex_hull.stl" />
+    <mesh name="left_arm_link4_convex_hull" content_type="model/stl"
+      file="left_arm_link4_convex_hull.stl" />
+    <mesh name="left_arm_link5_convex_hull" content_type="model/stl"
+      file="left_arm_link5_convex_hull.stl" />
+    <mesh name="left_arm_link6_convex_hull" content_type="model/stl"
+      file="left_arm_link6_convex_hull.stl" />
+    <mesh name="left_arm_link7_convex_hull" content_type="model/stl"
+      file="left_arm_link7_convex_hull.stl" />
+  </asset>
+
+  <worldbody>
+    <site name="world_site_x_axis" pos="0.25 0 0" size="0.25 0.025 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_y_axis" pos="0 0.5 0" size="0.025 0.5 0.025"
+      rgba="1 1 0 0.5" type="box" />
+    <site name="world_site_z_axis" pos="0 0 1" size="0.025 0.025 1"
+      rgba="1 1 0 0.5" type="box" />
+    <geom type="mesh" mesh="omni_chassis_base_link_convex_hull" />
+    <body name="leg_link1" pos="0.134 0 0.1325" quat="-0.135279 0.135279 0.694046 0.694046">
+      <inertial pos="0.21883 0.00219 -0.0046" quat="0.505152 0.498924 0.496342 0.499541" mass="5.28"
+        diaginertia="0.464407 0.460835 0.0244475" />
+      <joint name="leg_joint1" pos="0 0 0" axis="0 0 1" range="0 0.9374" actuatorfrcrange="-169 169" />
+      <geom type="mesh" mesh="leg_link1_convex_hull" />
+      <body name="leg_link2" pos="0.45 0 0" quat="0 0.19131 0.98153 0">
+        <inertial pos="0.19484 0 0" quat="0.500001 0.500001 0.500047 0.499951" mass="3.3"
+          diaginertia="0.232316 0.203237 0.0415624" />
+        <joint name="leg_joint2" pos="0 0 0" axis="0 0 1" range="0 2.5847"
+          actuatorfrcrange="-169 169" />
+        <geom type="mesh" mesh="leg_link2_convex_hull" />
+        <body name="leg_link3" pos="0.39 0 0" quat="0 0 1 0">
+          <inertial pos="2e-05 0.01881 -0.011" quat="0.707348 0.706863 0.00128484 -0.000928877"
+            mass="1.76" diaginertia="0.0110244 0.0106222 0.00878281" />
+          <joint name="leg_joint3" pos="0 0 0" axis="0 0 1" range="0 2.3262"
+            actuatorfrcrange="-84 84" />
+          <geom type="mesh" mesh="leg_link3_convex_hull" />
+          <body name="leg_link4" pos="0 0.224 0" quat="0.5 -0.5 -0.5 -0.5">
+            <inertial pos="0 -0.00599 -0.06877" quat="0.707107 0.000365744 -0.000365744 0.707107"
+              mass="0.72" diaginertia="0.00591483 0.00580757 0.00140049" />
+            <joint name="leg_joint4" pos="0 0 0" axis="0 0 1" range="-1.5906 1.5906"
+              actuatorfrcrange="-30 30" />
+            <geom type="mesh" mesh="leg_link4_convex_hull" />
+            <body name="leg_link5" quat="0.707107 0.707107 0 0">
+              <inertial pos="-0.0788442 0.0963352 -0.0395516"
+                quat="0.412065 0.30284 -0.691915 0.509651" mass="6.03"
+                diaginertia="0.350781 0.291965 0.116373" />
+              <joint name="leg_joint5" pos="0 0 0" axis="0 0 1" range="-0.1645 0.1645"
+                actuatorfrcrange="-30 30" />
+              <geom type="mesh" mesh="leg_link5_convex_hull" />
+              <geom type="mesh" mesh="torso_base_link_convex_hull" />
+              <body name="left_arm_link1" pos="0.20843 0.172 0"
+                quat="0.683013 0.183013 0.683013 0.183013">
+                <inertial pos="0 0.00097 -0.01539" quat="0.79715 0.00675234 -0.00525079 0.60372"
+                  mass="1.6" diaginertia="0.00339705 0.00332448 0.00165189" />
+                <joint name="left_arm_joint1" pos="0 0 0" axis="0 0 1" range="-3.00433 3.00433"
+                  actuatorfrcrange="-60 60" />
+                <geom type="mesh" mesh="left_arm_link1_convex_hull" />
+                <body name="left_arm_link2" quat="0 0 0.707107 0.707107">
+                  <inertial pos="0 0.09558 0.01015"
+                    quat="0.711079 0.703112 -9.72025e-05 0.000106239" mass="1.43"
+                    diaginertia="0.0193788 0.018954 0.00157693" />
+                  <joint name="left_arm_joint2" pos="0 0 0" axis="0 0 1" range="-1.60806 1.60806"
+                    actuatorfrcrange="-60 60" />
+                  <geom type="mesh" mesh="left_arm_link2_convex_hull" />
+                  <body name="left_arm_link3" pos="0 0.35 0"
+                    quat="-0.353553 0.353553 -0.612372 -0.612372">
+                    <inertial pos="0 0.00088 -0.04936"
+                      quat="0.999988 0.00482265 -4.48243e-05 0.000919392" mass="1.43"
+                      diaginertia="0.0118746 0.0117886 0.00137053" />
+                    <joint name="left_arm_joint3" pos="0 0 0" axis="0 0 1" range="-2.91697 2.91697"
+                      actuatorfrcrange="-30 30" />
+                    <geom type="mesh" mesh="left_arm_link3_convex_hull" />
+                    <body name="left_arm_link4" quat="0 0 -0.707107 -0.707107">
+                      <inertial pos="0 0.05614 0.01917"
+                        quat="0.731102 0.682267 -0.000806243 0.000896297" mass="1.1"
+                        diaginertia="0.00701388 0.00652468 0.00159506" />
+                      <joint name="left_arm_joint4" pos="0 0 0" axis="0 0 1"
+                        range="-2.56799 1.86986" actuatorfrcrange="-30 30" />
+                      <geom type="mesh" mesh="left_arm_link4_convex_hull" />
+                      <body name="left_arm_link5" pos="0 0.36 0" quat="0.707107 -0.707107 0 0">
+                        <inertial pos="0.00044 0.00169 -0.13306"
+                          quat="0.999789 0.00430973 -0.00121985 0.0200303" mass="1.15"
+                          diaginertia="0.0258109 0.0253041 0.00115654" />
+                        <joint name="left_arm_joint5" pos="0 0 0" axis="0 0 1"
+                          range="-2.91697 2.91697" actuatorfrcrange="-10 10" />
+                        <geom type="mesh" mesh="left_arm_link5_convex_hull" />
+                        <body name="left_arm_link6" quat="0.5 0.5 0.5 -0.5">
+                          <inertial pos="-0.00088 -0.00727 -0.00012"
+                            quat="0.113724 0.724032 0.0888356 0.674501" mass="0.47"
+                            diaginertia="0.000297618 0.000289132 0.000275439" />
+                          <joint name="left_arm_joint6" pos="0 0 0" axis="0 0 1"
+                            range="-0.822665 0.735398" actuatorfrcrange="-10 10" />
+                          <geom type="mesh" mesh="left_arm_link6_convex_hull" />
+                          <body name="left_arm_link7" quat="0.707107 0.707107 0 0">
+                            <inertial pos="-0.05776 -0.00675 0.01135"
+                              quat="0.450248 0.595403 0.411647 0.522798" mass="0.8"
+                              diaginertia="0.00428143 0.00419004 0.00112119" />
+                            <joint name="left_arm_joint7" pos="0 0 0" axis="0 0 1"
+                              range="-1.5382 1.5382" actuatorfrcrange="-10 10" />
+                            <geom type="mesh" mesh="left_arm_link7_convex_hull" />
+                            <site name="left_eef_site" pos="0 0 0" size="0.05" rgba="0 1 0 0.5"
+                              type="sphere" />
+                            <site name="left_eef_site_xaxis" pos="0.025 0 0"
+                              size="0.025 0.0025 0.0025" rgba="0 1 0 0.5" type="box" />
+                            <site name="left_eef_site_yaxis" pos="0 0.05 0"
+                              size="0.0025 0.05 0.0025" rgba="0 1 0 0.5" type="box" />
+                            <site name="left_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1"
+                              rgba="0 1 0 0.5" type="box" />
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+              <body name="right_arm_link1" pos="-0.20843 0.172 0"
+                quat="-0.183013 0.683013 0.183013 -0.683013">
+                <inertial pos="0 -0.00097 -0.01539" quat="0.79715 0.00675234 -0.00525079 0.60372"
+                  mass="1.6" diaginertia="0.00339705 0.00332448 0.00165189" />
+                <joint name="right_arm_joint1" pos="0 0 0" axis="0 0 1" range="-3.00433 3.00433"
+                  actuatorfrcrange="-60 60" />
+                <geom type="mesh" mesh="right_arm_link1_convex_hull" />
+                <body name="right_arm_link2" quat="0 0 -0.707107 0.707107">
+                  <inertial pos="0 -0.09558 0.01015"
+                    quat="0.711079 0.703112 -9.72025e-05 0.000106239" mass="1.43"
+                    diaginertia="0.0193788 0.018954 0.00157693" />
+                  <joint name="right_arm_joint2" pos="0 0 0" axis="0 0 1" range="-1.60806 1.60806"
+                    actuatorfrcrange="-60 60" />
+                  <geom type="mesh" mesh="right_arm_link2_convex_hull" />
+                  <body name="right_arm_link3" pos="0 -0.35 0"
+                    quat="0.353553 0.353553 0.612372 -0.612372">
+                    <inertial pos="0 -0.00088 -0.04936"
+                      quat="0.999988 0.00482265 -4.48243e-05 0.000919392" mass="1.43"
+                      diaginertia="0.0118746 0.0117886 0.00137053" />
+                    <joint name="right_arm_joint3" pos="0 0 0" axis="0 0 1" range="-2.91697 2.91697"
+                      actuatorfrcrange="-30 30" />
+                    <geom type="mesh" mesh="right_arm_link3_convex_hull" />
+                    <body name="right_arm_link4" quat="0 0 -0.707107 0.707107">
+                      <inertial pos="0 -0.05614 0.01917"
+                        quat="0.731102 0.682267 -0.000806243 0.000896297" mass="1.1"
+                        diaginertia="0.00701388 0.00652468 0.00159506" />
+                      <joint name="right_arm_joint4" pos="0 0 0" axis="0 0 1"
+                        range="-1.86986 2.56799" actuatorfrcrange="-30 30" />
+                      <geom type="mesh" mesh="right_arm_link4_convex_hull" />
+                      <body name="right_arm_link5" pos="0 -0.36 0" quat="0 0 -0.707107 0.707107">
+                        <inertial pos="0.00044 0.00169 -0.13306"
+                          quat="0.999789 0.00430973 -0.00121985 0.0200303" mass="1.15"
+                          diaginertia="0.0258109 0.0253041 0.00115654" />
+                        <joint name="right_arm_joint5" pos="0 0 0" axis="0 0 1"
+                          range="-2.91697 2.91697" actuatorfrcrange="-10 10" />
+                        <geom type="mesh" mesh="right_arm_link5_convex_hull" />
+                        <body name="right_arm_link6" quat="0.5 0.5 0.5 -0.5">
+                          <inertial pos="-0.00088 0.00727 -0.00012"
+                            quat="0.11308 0.723412 0.0892763 0.675217" mass="0.47"
+                            diaginertia="0.000297612 0.000289132 0.000275447" />
+                          <joint name="right_arm_joint6" pos="0 0 0" axis="0 0 1"
+                            range="-0.735398 0.822665" actuatorfrcrange="-10 10" />
+                          <geom type="mesh" mesh="right_arm_link6_convex_hull" />
+                          <body name="right_arm_link7" quat="0.707107 -0.707107 0 0">
+                            <inertial pos="-0.05751 0.00684 0.01187"
+                              quat="0.446995 0.599391 0.409465 0.522747" mass="0.8"
+                              diaginertia="0.00428335 0.00417811 0.00113043" />
+                            <joint name="right_arm_joint7" pos="0 0 0" axis="0 0 1"
+                              range="-1.5382 1.5382" actuatorfrcrange="-10 10" />
+                            <geom type="mesh" mesh="right_arm_link7_convex_hull" />
+                            <site name="right_eef_site" pos="0 0 0" size="0.05" rgba="1 0 0 0.5"
+                              type="sphere" />
+                            <site name="right_eef_site_xaxis" pos="0.025 0 0"
+                              size="0.025 0.0025 0.0025" rgba="1 0 0 0.5" type="box" />
+                            <site name="right_eef_site_yaxis" pos="0 0.05 0"
+                              size="0.0025 0.05 0.0025" rgba="1 0 0 0.5" type="box" />
+                            <site name="right_eef_site_zaxis" pos="0 0 0.1" size="0.0025 0.0025 0.1"
+                              rgba="1 0 0 0.5" type="box" />
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+              <body name="head_link1" pos="0 0.37711 0" quat="0.5 -0.5 -0.5 -0.5">
+                <inertial pos="-2e-05 0.00709 -0.0559"
+                  quat="0.999935 0.00088794 -0.000283206 0.0113452" mass="1.5695"
+                  diaginertia="0.00690033 0.00683299 0.00116966" />
+                <joint name="head_joint1" pos="0 0 0" axis="0 0 1" range="-1.5208 1.5208"
+                  actuatorfrcrange="-4 4" />
+                <geom type="mesh" mesh="head_link1_convex_hull" />
+                <body name="head_link2" quat="0.707107 -0.707107 0 0">
+                  <inertial pos="0.01835 -0.03348 0.00642"
+                    quat="0.294427 0.648964 -0.27986 0.643302" mass="0.81"
+                    diaginertia="5.5308e-06 5.16366e-06 2.55379e-06" />
+                  <joint name="head_joint2" pos="0 0 0" axis="0 0 1" range="-0.214346 0.493599"
+                    actuatorfrcrange="-4 4" />
+                  <geom type="mesh" mesh="head_link2_convex_hull" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- setup scene -->
+  <statistic center="1.0 0.7 1.2" extent="0.8" />
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.9 0.9 0.9" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="-140" elevation="-20" />
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="flat" rgb1="0 0 0" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+      rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
+      reflectance="0.2" />
+  </asset>
+  <worldbody>
+    <light pos="1 0 3.5" dir="0 0 -1" directional="true" />
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" />
+  </worldbody>
+</mujoco>

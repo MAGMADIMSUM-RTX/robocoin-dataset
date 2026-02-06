@@ -15,6 +15,7 @@
 !produceDockerImage.sh
 !testDockerImage.sh
 !.dockerignore
+!configs/**
 
 # Byte-compiled / optimized / DLL files
 
@@ -111,3 +112,4 @@ robocoin_datasets/server_logs/
 !/src/robocoin_dataset/page_sync/assets/robot_aliases.json
 !/src/robocoin_dataset/page_sync/assets/exclude.json
 run*
+
