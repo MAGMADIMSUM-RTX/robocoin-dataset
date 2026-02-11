@@ -363,3 +363,5 @@ class EpisodeQcDB(Base):
     episode_video_max_frame_stable_then_jump_rate_score = Column(Float, default=0.0)  # max_frame_stable_then_jump_rate 算子
     episode_video_max_frame_jump_dist_score = Column(Float, default=0.0)              # max_frame_jump_dist 算子
     episode_video_color_shift_detection_score = Column(Float, default=0.0)           
+    episode_video_consecutive_static_frames_score = Column(Float, default=0.0)
+    episode_video_camera_resolution_consistency_score = Column(Float, default=0.0)

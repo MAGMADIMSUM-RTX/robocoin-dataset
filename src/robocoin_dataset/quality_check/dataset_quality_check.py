@@ -39,6 +39,9 @@ from robocoin_dataset.quality_check.checker_registry import (
     EPISODE_VIDEO_CHECKERS,
 )
 from robocoin_dataset.utils.le_path import get_episodes_frames, get_parquet_files, get_video_files
+# 替换为实际的checkers模块路径
+from robocoin_dataset.quality_check.checkers import clear_video_decode_cache
+
 
 QC_CONFIG = "qc_config"
 QC_RESULT = "qc_result"
@@ -188,6 +191,7 @@ def quality_check_pipeline(
             action_data_scores[idx] = action_score / total_weight
 
         if not episode_video_checkers_config:
+            clear_video_decode_cache()
             return (
                 {
                     "bad_data_episodes": list(bad_data_episodes),
@@ -220,12 +224,17 @@ def quality_check_pipeline(
                     if not name:
                         raise ValueError("Each episode_video_checker config must have 'name'.")
 
-                    video_checker_score = 1 - func(paths, **params)
+                    #video_checker_score = 1 - func(paths, **params)
+                    video_checker_score = 1 - func(paths, episode_idx=idx, **params)
+                    if name == "camera_resolution_consistency" and video_checker_score == 0.0:
+                        bad_data_episodes.add(idx)
+                        break
                     video_score += video_checker_score * weight
                     video_scores_perchecker[idx][name] = video_checker_score
+                    # 新增：分辨率不一致/连续静止帧严重→标记为bad
             video_score /= total_weight
             video_scores[idx] = video_score
-
+        clear_video_decode_cache()
         return (
             {
                 "bad_data_episodes": list(bad_data_episodes),
@@ -303,6 +312,8 @@ def _build_episode_qc_summary(
         max_frame_stable_then_jump_rate_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_stable_then_jump_rate", 0.0)
         max_frame_jump_dist_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_jump_dist", 0.0)
         color_shift_detection_score = video_scores_perchecker.get(episode_idx, {}).get("video_color_shift_detection", 0.0)
+        consecutive_static_frames_score = video_scores_perchecker.get(episode_idx, {}).get("consecutive_static_frames", 0.0)
+        camera_resolution_score = video_scores_perchecker.get(episode_idx, {}).get("camera_resolution_consistency", 0.0)
 
         episode_summary[episode_idx].update(
             {
@@ -318,6 +329,8 @@ def _build_episode_qc_summary(
                 "episode_video_max_frame_stable_then_jump_rate_score": max_frame_stable_then_jump_rate_score,
                 "episode_video_max_frame_jump_dist_score": max_frame_jump_dist_score,
                 "episode_video_color_shift_detection_score": color_shift_detection_score,
+                "episode_video_consecutive_static_frames_score": consecutive_static_frames_score,
+                "episode_video_camera_resolution_consistency_score": camera_resolution_score,
             }
         )
     # 处理正常episode
@@ -332,7 +345,10 @@ def _build_episode_qc_summary(
         max_frame_stable_then_jump_rate_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_stable_then_jump_rate", 0.0)
         max_frame_jump_dist_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_jump_dist", 0.0)
         color_shift_detection_score = video_scores_perchecker.get(episode_idx, {}).get("video_color_shift_detection", 0.0)
-
+        consecutive_static_frames_score = video_scores_perchecker.get(episode_idx, {}).get("consecutive_static_frames", 0.0)
+        camera_resolution_score = video_scores_perchecker.get(episode_idx, {}).get("camera_resolution_consistency", 0.0)
+        
+        
         episode_summary[episode_idx].update(
             {
                 "is_bad": episode_idx in bad_set,
@@ -347,6 +363,8 @@ def _build_episode_qc_summary(
                 "episode_video_max_frame_stable_then_jump_rate_score": max_frame_stable_then_jump_rate_score,
                 "episode_video_max_frame_jump_dist_score": max_frame_jump_dist_score,
                 "episode_video_color_shift_detection_score": color_shift_detection_score,
+                "episode_video_consecutive_static_frames_score": consecutive_static_frames_score,
+                "episode_video_camera_resolution_consistency_score": camera_resolution_score,
             }
         )
     return episode_summary
@@ -634,6 +652,8 @@ class DatasetQualityCheckServer(TaskServer):
                         max_frame_stable_then_jump_rate_score = summary.get("episode_video_max_frame_stable_then_jump_rate_score", 0.0)
                         max_frame_jump_dist_score = summary.get("episode_video_max_frame_jump_dist_score", 0.0)
                         episode_video_color_shift_detection_score = summary.get("episode_video_color_shift_detection_score", 0.0)
+                        consecutive_static_frames_score = summary.get("episode_video_consecutive_static_frames_score", 0.0)
+                        camera_resolution_consistency_score = summary.get("episode_video_camera_resolution_consistency_score", 0.0)
 
                         episode_qc_item = EpisodeQcDB(
                             dataset_uuid=ds_uuid,
@@ -650,6 +670,8 @@ class DatasetQualityCheckServer(TaskServer):
                             episode_video_max_frame_stable_then_jump_rate_score=max_frame_stable_then_jump_rate_score,
                             episode_video_max_frame_jump_dist_score=max_frame_jump_dist_score,
                             episode_video_color_shift_detection_score=episode_video_color_shift_detection_score,
+                            episode_video_consecutive_static_frames_score=consecutive_static_frames_score,
+                            episode_video_camera_resolution_consistency_score=camera_resolution_consistency_score,
                         )
                         session.add(episode_qc_item)
 

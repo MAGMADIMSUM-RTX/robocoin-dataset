@@ -119,3 +119,23 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"初始化失败：{e}")
 
+
+
+# ALTER TABLE episode_qc
+# ADD COLUMN IF NOT EXISTS episode_data_static_frame_rate_score FLOAT DEFAULT 0.0,
+# ADD COLUMN IF NOT EXISTS episode_data_static_joint_score FLOAT DEFAULT 0.0,
+# ADD COLUMN IF NOT EXISTS episode_video_max_frame_stable_then_jump_rate_score FLOAT DEFAULT 0.0,
+# ADD COLUMN IF NOT EXISTS episode_video_max_frame_jump_dist_score FLOAT DEFAULT 0.0,
+# ADD COLUMN IF NOT EXISTS episode_video_color_shift_detection_score FLOAT DEFAULT 0.0;
+
+# -- 验证字段是否添加成功
+# SELECT column_name 
+# FROM information_schema.columns 
+# WHERE table_name = 'episode_qc' 
+# AND column_name IN (
+#     'episode_data_static_frame_rate_score',
+#     'episode_data_static_joint_score',
+#     'episode_video_max_frame_stable_then_jump_rate_score',
+#     'episode_video_max_frame_jump_dist_score',
+#     'episode_video_color_shift_detection_score'
+# );
