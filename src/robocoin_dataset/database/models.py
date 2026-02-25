@@ -351,17 +351,24 @@ class EpisodeQcDB(Base):
     dataset_uuid = Column(String(255), index=True, nullable=False)
     episode_idx = Column(Integer, index=True, nullable=False)
     is_bad_episode = Column(Boolean, nullable=False)
+    is_state_frame_diff =  Column(Boolean, nullable=False)
     state_data_score = Column(Float, nullable=True)
     action_data_score = Column(Float, nullable=True)
     video_score = Column(Float, nullable=True)
     
     # ==================== Episode Data 算子单独得分 ====================
-    episode_data_static_frame_rate_score = Column(Float, default=0.0)    # static_frame_rate 算子
-    episode_data_static_joint_score = Column(Float, default=0.0)         # static_joint 算子
-    
+    episode_state_static_frame_rate_score = Column(Float, default=0.0)    # static_frame_rate 算子 state
+    episode_state_static_joint_score = Column(Float, default=0.0)         # static_joint 算子 state
+    episode_action_static_frame_rate_score = Column(Float, default=0.0)    # static_frame_rate 算子 action
+    episode_action_static_joint_score = Column(Float, default=0.0)         # static_joint 算子 action
+
     # ==================== Episode Video 算子单独得分 ====================
     episode_video_max_frame_stable_then_jump_rate_score = Column(Float, default=0.0)  # max_frame_stable_then_jump_rate 算子
     episode_video_max_frame_jump_dist_score = Column(Float, default=0.0)              # max_frame_jump_dist 算子
     episode_video_color_shift_detection_score = Column(Float, default=0.0)           
     episode_video_consecutive_static_frames_score = Column(Float, default=0.0)
     episode_video_camera_resolution_consistency_score = Column(Float, default=0.0)
+
+    # ===================== 有效区间 ===================================
+    start_frame = Column(Integer)
+    end_frame = Column(Integer)

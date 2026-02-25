@@ -2,9 +2,23 @@ import argparse
 import asyncio
 import logging
 from pathlib import Path
+import yaml 
 
 from robocoin_dataset.quality_check.qced_repo_generator import QualityCheckedRepoGeneratorServer
 from robocoin_dataset.utils.logger import setup_logger
+
+
+def load_yaml_config(config_path: str | Path) -> dict:
+    """读取YAML配置文件，返回字典"""
+    config_path = Path(config_path).expanduser().absolute()
+    if not config_path.exists():
+        raise FileNotFoundError(f"配置文件不存在: {config_path}")
+    
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    
+    # 确保返回的是字典（防止YAML为空）
+    return config if isinstance(config, dict) else {}
 
 
 async def main() -> None:
@@ -39,35 +53,9 @@ async def main() -> None:
     parser.add_argument(
         "--qc_config_path",
         type=str,
-        default="",
-        help="Path to the quality check config file",
+        default="./configs/qc_repo_config.yaml",
+        help="Path to the quality check YAML config file",
     )
-    parser.add_argument(
-        "--state_data_score_threshold",
-        type=float,
-        default=0.85,
-        help="State data score threshold",
-    )
-    parser.add_argument(
-        "--action_data_score_threshold",
-        type=float,
-        default=0.85,
-        help="Action data score threshold",
-    )
-    parser.add_argument(
-        "--video_score_threshold",
-        type=float,
-        default=0.9,
-        help="Video score threshold",
-    )
-
-    parser.add_argument(
-        "--min_episodes_num",
-        type=int,
-        default=5,
-        help="Minimum episodes number",
-    )
-
     parser.add_argument(
         "--target_dataset_uuid",
         type=str,
@@ -79,6 +67,16 @@ async def main() -> None:
 
     args = parser.parse_args()
     db_file_path = Path(args.db_file_path).expanduser().absolute()
+
+    try:
+        qc_config = load_yaml_config(args.qc_config_path)
+        logging.info(f"成功读取配置文件: {args.qc_config_path}")
+    except Exception as e:
+        print(f"读取配置文件失败: {e}")
+        exit(1)
+
+    # 3. 合并配置：命令行参数 > YAML配置（用get方法保证安全）
+    final_config = qc_config.copy()
 
     if not db_file_path.exists():
         print(f"{db_file_path} does not exist")
@@ -95,11 +93,8 @@ async def main() -> None:
         host=args.host,
         port=args.port,
         logger=logger,
-        state_data_score_threshold=args.state_data_score_threshold,
-        action_data_score_threshold=args.action_data_score_threshold,
-        video_score_threshold=args.video_score_threshold,
+        qc_config=final_config,
         ds_api_key=args.ds_api_key,
-        min_episodes_num=args.min_episodes_num,
         target_dataset_uuid=args.target_dataset_uuid,
     )
 

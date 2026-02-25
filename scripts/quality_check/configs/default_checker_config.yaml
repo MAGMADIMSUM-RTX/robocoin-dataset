@@ -20,26 +20,34 @@ episode_data_checkers:
   - name: "static_frame_rate"  # 通过滑动窗口检测每个窗口是否静止，统计所有被标记为静止的帧的总占比
     params:
       window_size: 5  #  默认5帧，窗口越大越容易检测到静止（单帧抖动不影响），越小越敏感
-      threshold: 0.005 #  默认0.01，值越小越更少帧被判定为静止
+      threshold: 0.02  #  默认0.01，值越小越更少帧被判定为静止，如果数据的标准差在这个范围内，则被认定成静止
+      skipsize: 0.05  # 跳过前后5%帧的统计，最大10%,保持默认即可
     should_check: True  
     score_weight: 1.0   
 
   - name: "static_joint"  #  全局判断机械臂是否处于静止（足够多关节的标准差小于阈值）
     params:   
-      static_joints_percent: 0.6  #  静态关节占比阈值）：默认40%，值越小越容易判定为静态，越大越宽容
+      static_joints_percent: 0.6  #  静态关节占比阈值）：默认40%，值越小越容易判定为静态，越大越宽容，需要在前面的yaml或者字段，如果是单臂操作，为0.6,双臂操作为0.4
       epsilon: 0.001  #  关节数据的标准差：每个关节的全局标准差越小，越容易被判定为静态
     should_check: True  
     score_weight: 1.0   
 
+  - name: "motion_data_valid_frame_range"  # 通过运动数据获取该episode的有效区间
+    params:
+      window_size: 5  #  
+      threshold: 0.02  #  
+    should_check: True  
+    score_weight: 1.0   
+
 episode_video_checkers:
-  - name: "max_frame_stable_then_jump_rate"  # 检测视频稳定后跳变的最大汉明距离占比
+  - name: "max_frame_stable_then_jump_rate"  # 检测视频稳定后跳变的最大汉明距离
     should_check: True  
     score_weight: 1.0   
 
   - name: "max_frame_jump_dist"  #  检测视频关键帧的最大跳变距离是否超标
     should_check: True  
     params:  
-      max_dist_threshold: 150  #  max_dist_threshold（跳变阈值）：默认50，超过这个数值为异常，值越小越容易判定为异常，越大越宽松
+      max_dist_threshold: 200  #  max_dist_threshold（跳变阈值）：默认50，超过这个数值为异常，值越小越容易判定为异常，越大越宽松
     score_weight: 1.0   
 
   - name: "video_color_shift_detection"  # 统计视频中相邻帧颜色差值超过阈值的帧数占比
@@ -51,10 +59,17 @@ episode_video_checkers:
   - name: "consecutive_static_frames"  # 检测视频中由异常因素导致的连续静止帧
     should_check: True
     params:
-      phash_dist_threshold: 10    # 哈希距离阈值，可根据需求调整
-      static_frames_threshold: 20 # 连续静止帧数阈值
+      phash_dist_threshold: 2    # 哈希距离阈值，可根据需求调整，越小越宽松
+      static_frames_threshold: 20 # 连续静止帧数阈值，该数值暂时没有使用
+      sample_count: 4
     score_weight: 1.0
 
-  - name: "camera_resolution_consistency"
+  - name: "camera_resolution_consistency"  # 检查视频的分辨率与info.json中是否定义的一致
     should_check: True
     score_weight: 1.0
+
+  - name: "video_valid_frame_range" # 通过视频数据获取该episode的有效区间
+    params:
+      phash_dist_threshold: 2 # 哈希距离阈值，可根据需求调整，越小越宽松
+    should_check: True  
+    score_weight: 1.0   
