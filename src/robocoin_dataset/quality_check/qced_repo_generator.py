@@ -570,6 +570,9 @@ def _get_bad_episodes(
             continue
         if item.episode_video_consecutive_static_frames_score < consecutive_static_frames_threshold:
             bad_episodes.add(item.episode_idx)
+            continue
+        if item.is_state_frame_diff:
+            bad_episodes.add(item.episode_idx)
 
     return bad_episodes
 
