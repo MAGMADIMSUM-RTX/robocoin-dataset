@@ -32,12 +32,12 @@ sim:
     gripper: True
 
   camera:   # 相机参数可以从 tools/sim_replay/get_camara.py 中获取
-    lookat_x: 0.322
-    lookat_y: -0.013
-    lookat_z: 0.609
-    distance: 1.971
-    azimuth: 144.5
-    elevation: -34.0
+    lookat_x: 0.104
+    lookat_y: 0.042
+    lookat_z: 1.171
+    distance: 2.168
+    azimuth: -1.250
+    elevation: -56.625
 
 default_version:
   gripper_config:

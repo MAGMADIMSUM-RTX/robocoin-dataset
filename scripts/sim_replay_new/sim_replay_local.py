@@ -9,9 +9,16 @@
 
 """ Usage example:
 python scripts/sim_replay_new/sim_replay_local.py \
-    --repo_path /mnt/nas/synnas/docker2/robocoin-datasets/Split_aloha_basket_storage_banana \
+    --repo_path /home/user/process_symmetry/processed_dataset \
+    --config_name realman \
+    --data_source data \
+    --data_type all \
+    --episode_idx 0
+
+python scripts/sim_replay_new/sim_replay_local.py \
+    --repo_path /home/user/process_symmetry/Cobot_Magic_move_plate_qced_hardlink/ \
     --config_name agilex \
-    --data_source sa_dpp \
+    --data_source data \
     --data_type all \
     --episode_idx 0
 """

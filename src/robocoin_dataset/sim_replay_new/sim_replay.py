@@ -98,17 +98,65 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
     else:
         print(f"Warning: Video chunk directory not found at {video_chunk_path}")
 
-    video_views = []
-    for cam_name in sorted(video_caps.keys()):
-        video_views.append(rrb.Spatial2DView(origin=f"/01_videos/{cam_name}", name=cam_name))
-    if not video_views:
-        video_views = [rrb.Spatial2DView(origin="/01_videos", name="Videos")]
+    # Define layout keywords mapping
+    def get_layout_pos(name):
+        name_lower = name.lower()
+        
+        # Column: 0=Left, 1=Center, 2=Right
+        col = 1
+        if "left" in name_lower:
+            col = 0
+        elif "right" in name_lower:
+            col = 2
+            
+        # Row: 0=Top, 1=Middle, 2=Bottom
+        row = 1
+        
+        top_kws = ["head", "top", "upper", "global", "env"]
+        bottom_kws = ["leg", "lower", "bottom", "wrist", "foot"]
+        
+        for kw in top_kws:
+            if kw in name_lower:
+                row = 0
+                break
+        
+        if row == 1:
+            for kw in bottom_kws:
+                if kw in name_lower:
+                    row = 2
+                    break
+        
+        return col, row
 
-    video_rows = []
-    for i in range(0, len(video_views), 3):
-        video_rows.append(rrb.Horizontal(*video_views[i:i + 3]))
-
-    video_container = video_rows[0] if len(video_rows) == 1 else rrb.Vertical(*video_rows)
+    if not video_caps:
+        video_container = rrb.Spatial2DView(origin="/01_videos", name="Videos")
+    else:
+        # Grid: [col][row] -> list of views
+        grid = [[[] for _ in range(3)] for _ in range(3)]
+        
+        for cam_name in sorted(video_caps.keys()):
+            col, row = get_layout_pos(cam_name)
+            name=cam_name.split(".")[-1]
+            view = rrb.Spatial2DView(origin=f"/01_videos/{cam_name}", name="前胸 "+name)
+            grid[col][row].append(view)
+            
+        # Build columns
+        cols = []
+        # Explicitly iterate 0, 1, 2 to maintain Left-Center-Right order
+        for c in range(3):
+            col_views = []
+            for r in range(3):
+                col_views.extend(grid[c][r])
+            
+            if col_views:
+                cols.append(rrb.Vertical(*col_views))
+        
+        if not cols:
+            video_container = rrb.Spatial2DView(origin="/01_videos", name="Videos")
+        elif len(cols) == 1:
+            video_container = cols[0]
+        else:
+            video_container = rrb.Horizontal(*cols)
 
     rr.send_blueprint(
         rrb.Blueprint(
@@ -126,7 +174,7 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
     print(f"Starting replay for episode {episode_idx}...")
     
     frame_idx = 0
-    dt = 0.02  # 假设 50Hz，可按需调整
+    dt = 0.01  # 假设 50Hz，可按需调整
     try:
         while True:
             # 推进所有 replayer

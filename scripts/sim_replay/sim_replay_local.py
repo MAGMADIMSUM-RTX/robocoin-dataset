@@ -1,14 +1,27 @@
 #!/usr/bin/env python3
 '''
 python scripts/sim_replay/sim_replay_local.py \
-  --repo_path /mnt/nas/synnas/成功区/Galaxea_R1_Lite_Galaxea_R1_Lite_storage_object_brown_plate \
-  --config_module robocoin_dataset.sim_replay.configs.galaxea_config \
-  --config_class RealmanRS01LerobotSimReplayConfig \
+  --repo_path /home/user/process_symmetry/realman_rmc_aidal_basket_storage_orange_hardlink \
+  --config_module robocoin_dataset.sim_replay.configs.realman_rmc_aidal_config \
+  --config_class RealmanRmcAidalLerobotSimReplayConfig \
   --replay_source data
 '''
 import argparse
 from pathlib import Path
 from importlib import import_module
+import sys
+
+# Ensure project root is on sys.path so running this script directly
+# can import the local `robocoin_dataset` package.
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# Prefer `src/` layout if present (e.g. src/robocoin_dataset)
+_SRC_ROOT = _PROJECT_ROOT / "src"
+if _SRC_ROOT.exists():
+    root_to_add = _SRC_ROOT
+else:
+    root_to_add = _PROJECT_ROOT
+if str(root_to_add) not in sys.path:
+    sys.path.insert(0, str(root_to_add))
 
 from robocoin_dataset.sim_replay.sim_replay import _sim_replay_dataset
 
