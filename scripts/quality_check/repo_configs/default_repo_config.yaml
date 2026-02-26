@@ -1,0 +1,7 @@
+# 质检仓库生成配置
+min_episodes_num: 30
+state_data_score_threshold: 0.75
+action_data_score_threshold: 0.75
+video_score_threshold: 0.87
+consecutive_static_frames_threshold: 0.6
+

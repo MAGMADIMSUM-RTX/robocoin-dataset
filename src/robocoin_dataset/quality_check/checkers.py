@@ -1,9 +1,11 @@
 from pathlib import Path
-
 import av
 import imagehash
+import math
 import numpy as np
-
+import cv2
+import platform
+import json
 from robocoin_dataset.quality_check.checker_registry import (
     data_video_consistency_checker_registry,
     dataset_data_checker_registry,
@@ -11,20 +13,207 @@ from robocoin_dataset.quality_check.checker_registry import (
     episode_video_checker_registry,
 )
 
+import time
+from functools import wraps
+
+# 全局缓存：key=(episode_idx, video_path), value=解码结果
+VIDEO_DECODE_CACHE = {}
+# 记录当前活跃的Episode，避免跨Episode缓存污染
+ACTIVE_EPISODE_IDX = None
+
+# 全局标记：是否有可用的GPU（只检测一次，避免重复检测）
+HAS_CUDA_GPU = None
+
+def timer(label=""):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            t0 = time.time()
+            res = func(*args, **kwargs)
+            cost = time.time() - t0
+            print(f"[TIMER] {label} {func.__name__} | cost: {cost:.3f}s")
+            return res
+        return wrapper
+    return decorator
+
+def check_cuda_availability() -> bool:
+    """
+    检测系统是否有可用的NVIDIA GPU + CUDA环境
+    返回: True=有可用GPU，False=无GPU/环境不可用
+    """
+    global HAS_CUDA_GPU
+    if HAS_CUDA_GPU is not None:
+        return HAS_CUDA_GPU
+    
+    # 快速检测（避免耗时）
+    try:
+        # 1. 检测系统是否为Linux（Windows需调整）
+        if platform.system() != "Linux":
+            HAS_CUDA_GPU = False
+            return False
+        
+        # 2. 检测nvidia-smi是否可用
+        import subprocess
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            HAS_CUDA_GPU = False
+            return False
+        
+        # 3. 检测PyAV是否支持CUDA解码
+        test_video_path = Path(__file__).parent / "test.mp4"
+        container = av.open(str(test_video_path)) if test_video_path.exists() else None
+        if container:
+            video_stream = container.streams.video[0]
+            video_stream.codec_context.options = {"hwaccel": "cuda"}
+            container.close()
+        
+        HAS_CUDA_GPU = True
+        print("[GPU检测] 检测到可用的NVIDIA GPU，将启用CUDA加速解码")
+    except Exception as e:
+        HAS_CUDA_GPU = False
+        print(f"[GPU检测] 无可用GPU/CUDA环境，将使用CPU解码 | 原因：{str(e)}")
+    
+    return HAS_CUDA_GPU
+
+# @timer("DECODE | 自动适配")
+def decode_video_once(video_path: str | Path, episode_idx: int = None):
+    """
+    自动适配GPU/CPU的视频解码函数：
+    - 有GPU：启用CUDA加速
+    - 无GPU：自动降级为CPU解码
+    - GPU解码失败：自动重试CPU解码
+    """
+    global VIDEO_DECODE_CACHE, ACTIVE_EPISODE_IDX
+    
+    # 标准化路径
+    video_path = Path(video_path).resolve()
+    cache_key = (episode_idx, str(video_path))
+    
+    # 1. 切换Episode时清空旧缓存
+    if episode_idx != ACTIVE_EPISODE_IDX:
+        keys_to_delete = [k for k in VIDEO_DECODE_CACHE if k[0] != episode_idx]
+        # 输出被清理的缓存路径（可选）
+        if keys_to_delete:
+            deleted_paths = [k[1] for k in keys_to_delete]
+            # print(f"[Cache] 切换到Episode {episode_idx}，清理旧缓存路径：{deleted_paths}")
+        # else:
+        #     print(f"[Cache] 切换到Episode {episode_idx}，无旧缓存需要清理")
+        
+        for k in keys_to_delete:
+            del VIDEO_DECODE_CACHE[k]
+        ACTIVE_EPISODE_IDX = episode_idx
+        # 输出剩余缓存的路径（可选）
+        remaining_paths = [k[1] for k in VIDEO_DECODE_CACHE.keys()]
+        # print(f"[Cache] 切换后剩余缓存项：{len(VIDEO_DECODE_CACHE)}个 | 路径列表：{remaining_paths}")
+    
+    # 2. 命中缓存直接返回（核心修改：输出完整路径）
+    if cache_key in VIDEO_DECODE_CACHE:
+        # 输出缓存命中的完整路径 + 文件名
+        # print(f"[Cache] 命中缓存：Episode {episode_idx} | 文件名：{video_path.name} | 完整路径：{str(video_path)}")
+        return VIDEO_DECODE_CACHE[cache_key]
+    
+    # 3. 核心解码逻辑（自动适配GPU/CPU）
+    keyframe_hashes = []
+    all_frames_bgr = []
+    valid = True
+    
+    def _decode_with_config(use_gpu: bool):
+        """内部解码函数，支持不同配置"""
+        nonlocal keyframe_hashes, all_frames_bgr, valid
+        try:
+            container = av.open(str(video_path))
+            video_stream = container.streams.video[0]
+            
+            # 设置解码参数（根据是否使用GPU）
+            if use_gpu:
+                video_stream.codec_context.options = {
+                    "hwaccel": "cuda",
+                    "hwaccel_device": "0",
+                    "thread_count": "8",
+                    "preset": "fast"
+                }
+                decode_label = "GPU"
+            else:
+                video_stream.codec_context.options = {
+                    "thread_count": "8",  # CPU多线程
+                    "preset": "fast"
+                }
+                decode_label = "CPU"
+            
+            # 批量解码所有帧
+            frames = list(container.decode(video_stream))
+            
+            # 转换帧数据
+            for frame in frames:
+                # GPU帧转换（如果启用GPU）
+                if use_gpu and hasattr(frame, 'hw_device') and frame.hw_device is not None:
+                    frame = frame.reformat(format="bgr24", hwaccel="cuda")
+                bgr = frame.to_ndarray(format="bgr24")
+                all_frames_bgr.append(bgr)
+                
+                # 关键帧哈希计算
+                if frame.key_frame or frame.pict_type == "I":
+                    img = frame.to_image()
+                    h = imagehash.phash(img, hash_size=16)
+                    keyframe_hashes.append(h)
+            
+            container.close()
+            # print(f"[{decode_label}解码] 完成：{video_path.name} | 总帧数：{len(all_frames_bgr)} | 关键帧数：{len(keyframe_hashes)} | 完整路径：{str(video_path)}")
+            return True
+        except Exception as e:
+            # print(f"[{decode_label}解码失败] Episode {episode_idx} | {video_path.name} | 完整路径：{str(video_path)} | 错误：{str(e)}")
+            return False
+    
+    # 4. 先尝试GPU解码（如果有GPU），失败则重试CPU
+    use_gpu = check_cuda_availability()
+    if use_gpu:
+        gpu_decode_success = _decode_with_config(use_gpu=True)
+        if not gpu_decode_success:
+            # GPU解码失败，重试CPU
+            keyframe_hashes = []
+            all_frames_bgr = []
+            _decode_with_config(use_gpu=False)
+    else:
+        # 无GPU，直接CPU解码
+        _decode_with_config(use_gpu=False)
+    
+    # 5. 存入缓存
+    result = {
+        "keyframe_hashes": keyframe_hashes,
+        "all_frames_bgr": all_frames_bgr,
+        "valid": valid and len(all_frames_bgr) > 0
+    }
+    VIDEO_DECODE_CACHE[cache_key] = result
+    # 输出缓存新增的路径（可选）
+    # print(f"[Cache] 新增缓存项：Episode {episode_idx} | 路径：{str(video_path)}")
+    
+    return result
+
+def clear_video_decode_cache():
+    global VIDEO_DECODE_CACHE, ACTIVE_EPISODE_IDX
+    VIDEO_DECODE_CACHE.clear()
+    ACTIVE_EPISODE_IDX = None
+    print("[Cache] 全局视频解码缓存已清空")
 
 @dataset_data_checker_registry("few_episode_frames")
 def detect_short_episodes(
-    episode_frame_nums: dict[int, int], ignored_indices: set[int], threshold: int = 150
+    episode_frame_nums: dict[int, int], ignored_indices: set[int], threshold: int = 150,  episode_idx: int = None
 ) -> set[int]:
     """
-    检查视频数量是否过小。
-
-    参数:
-        video_paths (dict): 键为索引，值为视频路径列表
-        ignored_indices (list): 忽略的索引列表
-
-    返回:
-        list: 索引列表，表示视频数量小于10的索引
+    【数据集级算子】检测单Episode帧数过少的异常
+    功能：筛选出帧数小于阈值的Episode，判定为异常Episode
+    得分影响因素：
+        1. threshold（阈值）：默认150帧，阈值越小越容易判定为正常，越大越严格
+        2. episode_frame_nums：各Episode的实际帧数
+        3. ignored_indices：已被标记为异常的Episode索引（会跳过检测）
+    分数/返回值：
+        - 返回值：异常Episode的索引集合（set[int]）
+        - 无直接分数，被判定为异常的Episode会被加入bad_episodes，最终标记为is_bad=1
     """
     bad_episodes = set()
     for ep_idx, frame_num in episode_frame_nums.items():
@@ -38,17 +227,18 @@ def detect_short_episodes(
 
 @dataset_data_checker_registry("too_few_episodes")
 def detect_few_episodes(
-    episode_frame_nums: dict[int, int], ignored_indices: set[int], threshold: int = 30
+    episode_frame_nums: dict[int, int], ignored_indices: set[int], threshold: int = 30,  episode_idx: int = None
 ) -> set[int]:
     """
-    检查视频数量是否过小。
-
-    参数:
-        video_paths (dict): 键为索引，值为视频路径列表
-        ignored_indices (list): 忽略的索引列表
-
-    返回:
-        list: 索引列表，表示视频数量小于10的索引
+    【数据集级算子】检测数据集总有效Episode数量过少的异常
+    功能：若数据集内有效Episode数量（排除ignored_indices）小于阈值，判定整个数据集所有Episode为异常
+    得分影响因素：
+        1. threshold（阈值）：默认30个Episode，阈值越小越容易判定为正常，越大越严格
+        2. episode_frame_nums：数据集内所有Episode的索引集合
+        3. ignored_indices：已被标记为异常的Episode索引（会从总数中扣除）
+    分数/返回值：
+        - 返回值：若有效数<阈值，返回所有Episode索引集合；否则返回空集合
+        - 无直接分数，被判定为异常的Episode会被加入bad_episodes，最终标记为is_bad=1
     """
     bad_episodes = set()
     if len(set(episode_frame_nums.keys()) - (ignored_indices)) < threshold:
@@ -58,8 +248,23 @@ def detect_few_episodes(
 
 @dataset_data_checker_registry("abnormal_episode_length")
 def detect_frame_num_outliers_mad_idx(
-    episode_frame_nums: dict[int, int], ignored_indices: set[int], threshold: float = 2.0
+    episode_frame_nums: dict[int, int], ignored_indices: set[int], threshold: float = 2.0,  episode_idx: int = None
 ) -> set[int]:
+    """
+    【数据集级算子】基于MAD（中位数绝对偏差）检测Episode帧数离群值
+    功能：找出帧数显著偏离数据集整体分布的Episode（过短/过长），判定为异常
+    得分影响因素：
+        1. threshold（MAD阈值）：默认2.0，值越大越宽松（更少Episode被判定为离群），值越小越严格
+        2. episode_frame_nums：各Episode的实际帧数（仅检测未被忽略的Episode）
+        3. 数据集整体帧数分布：中位数越集中，越容易检测出离群值
+    分数/返回值：
+        - 返回值：帧数离群的Episode索引集合（set[int]）
+        - 无直接分数，被判定为异常的Episode会被加入bad_episodes，最终标记为is_bad=1
+    判定逻辑：
+        1. 计算所有有效Episode帧数的中位数
+        2. 计算每个Episode帧数相对中位数的比值
+        3. 基于MAD计算修正Z-score，绝对值>threshold则判定为离群值
+    """
     episode_frame_nums.values()
     bad_episodes = set()
     episode_frame_nums = {
@@ -97,7 +302,10 @@ def detect_frame_num_outliers_mad_idx(
 def check_approximately_static_by_std_rms_per_dim(
     data: np.ndarray, threshold: float = 0.01
 ) -> bool:
-    """要求每个维度都近似静止"""
+    """
+    辅助函数：按维度检测数据是否近似静止（每个维度都需满足静止条件）
+    返回：True=静止，False=非静止
+    """
     data = np.asarray(data)
     if data.size == 0 or data.shape[0] <= 1:
         return True
@@ -115,7 +323,7 @@ def check_approximately_static_by_std_rms_per_dim(
 
 def normalize_per_dimension(data: np.ndarray) -> np.ndarray:
     """
-    对每个维度独立进行 Z-score 归一化。
+    辅助函数：对每个维度独立进行 Z-score 归一化
     输入: (T, D)
     输出: (T, D)，每列均值≈0，标准差≈1（若原标准差>0）
     """
@@ -131,6 +339,10 @@ def normalize_per_dimension(data: np.ndarray) -> np.ndarray:
 
 
 def is_window_static(window_data: np.ndarray, threshold: float = 0.01) -> bool:
+    """
+    辅助函数：检测单个滑动窗口内的数据是否静止
+    返回：True=静止，False=非静止
+    """
     if window_data.shape[0] <= 1:
         return True
     stds = np.std(window_data, axis=0)
@@ -146,63 +358,91 @@ def is_window_static(window_data: np.ndarray, threshold: float = 0.01) -> bool:
 
 @episode_data_checker_registry("static_frame_rate")
 def count_total_static_frames_rate(
-    data: np.ndarray, window_size: int = 5, threshold: float = 0.01
+    data: np.ndarray, window_size: int = 5, threshold: float = 0.01,  skipsize: float = 0.05, episode_idx: int = None
 ) -> float:
     """
-    统计所有被判定为静止的帧的总数量（去重，每帧只算一次）。
-
-    参数:
-        data: np.ndarray, shape (T, D)
-        window_size: int, 判断静止的窗口大小
-        step: int, 滑动步长
-        threshold: float, 归一化后的静止阈值
-
-    返回:
-        int: 所有静止帧的总数占比
+    【Episode数据算子】统计数据中静止帧的占比
+    功能：通过滑动窗口检测每个窗口是否静止，统计所有被标记为静止的帧的总占比
+    新增改动：
+        - 新增可配置参数skipsize（默认0.05），控制前后跳过的帧比例
+        - 仅基于中间 (1-2*skipsize) 的有效帧计算静止占比
+    得分影响因素：
+        1. window_size（窗口大小）：默认5帧，窗口越大越容易检测到静止（单帧抖动不影响），越小越敏感
+        2. threshold（静止阈值）：默认0.01，值越小越严格（更少帧被判定为静止），值越大越宽松
+        3. skipsize（跳过比例）：默认0.05，值越大跳过越多，有效帧范围越小
+        4. 数据波动程度：数据越平稳，静止帧占比越高；波动越大，占比越低
+        5. 数据归一化：每个维度独立归一化，消除量纲影响
+    分数/返回值：
+        - 返回值：0.0 ~ 1.0 的浮点数，表示「中间 (1-2*skipsize) 有效帧」中静止帧的占比
+        - 分数越高：静止帧越多，数据越“不动”，质检得分越低（最终会用1 - 该值计算得分）
+        - 特殊值：
+          - 0.0：无静止帧（数据全程波动）
+          - 1.0：全帧静止（数据无变化）
+          - 单帧数据直接返回1.0（视为静止）
     """
+    skipsize = max(0.0, min(0.1, skipsize))
     if data.size == 0:
-        return 0
+        return 0.0  # 统一返回浮点数，保持类型一致
     frame_count = data.shape[0]
     if frame_count == 1:
-        return 1  # 单帧视为静止
+        return 1.0  # 单帧视为静止
 
-    # Step 1: 归一化
-    data_norm = normalize_per_dimension(data)
+    # 总帧数过少（<20帧）时，不跳过帧（避免无有效帧）
+    if frame_count < 20:
+        start_idx = 0
+        end_idx = frame_count
+    else:
+        # 向上取整，确保跳过帧数为整数
+        skip_frames = int(np.ceil(frame_count * skipsize))
+        start_idx = skip_frames
+        end_idx = frame_count - skip_frames
+        # 极端情况：跳过过多导致无有效帧（比如skipsize=0.6，总帧数10→跳过6帧，中间剩-2帧）
+        if start_idx >= end_idx:
+            return 0.0
 
-    # Step 2: 标记哪些帧属于至少一个静止窗口
-    frame_static = np.zeros(frame_count, dtype=bool)
+    # 切片获取有效帧
+    data_valid = data[start_idx:end_idx]
+    valid_frame_count = data_valid.shape[0]
+    # 有效帧仅1帧时，视为静止
+    if valid_frame_count == 1:
+        return 1.0
 
-    for i in range(0, frame_count - window_size + 1, 1):
+    # Step 1: 对有效帧做归一化
+    data_norm = normalize_per_dimension(data_valid)
+
+    # Step 2: 标记有效帧中哪些属于静止窗口（数组长度改为有效帧数量）
+    frame_static = np.zeros(valid_frame_count, dtype=bool)
+
+    # 滑动窗口仅遍历有效帧（范围改为有效帧的长度）
+    for i in range(0, valid_frame_count - window_size + 1, 1):
         if is_window_static(data_norm[i : i + window_size], threshold):
             frame_static[i : i + window_size] = True
 
-    # 可选：处理末尾不足 window_size 的帧（保守起见，可跳过）
-    # 如果希望更敏感，也可对末尾单独判断（但窗口太小可能不准）
-
-    # Step 3: 统计总静止帧数占比
+    # Step 3: 统计有效帧中的静止占比（分母改为有效帧总数）
     total_static = np.sum(frame_static)
-    return float(total_static / frame_count)
+    return float(total_static / valid_frame_count)
+
 
 
 @episode_data_checker_registry("static_joint")
 def detect_static_joint(
-    data: np.ndarray, static_joints_percent: float = 0.4, epsilon: float = 1e-3
+    data: np.ndarray, static_joints_percent: float = 0.4, epsilon: float = 1e-3,  episode_idx: int = None
 ) -> float:
     """
-    检测机械臂数据是否处于“静态”状态（全局判断，非滑动窗口）。
-
-    判断逻辑：
-        - 对每个维度（关节），计算其在整个时间序列上的标准差；
-        - 如果标准差 < epsilon，则认为该维度“几乎不变”；
-        - 若“几乎不变”的维度数 ≥ static_joints，则返回 1.0（静态），否则 0.0。
-
-    参数:
-        data: shape (T, D) 的数组，T 为时间步，D 为关节数/维度数
-        static_joints: 判定为静态所需的“几乎不变”维度数量阈值
-        epsilon: 判定“几乎不变”的标准差容差（默认 1e-2）
-
-    返回:
-        float: 1.0 表示静态（有足够多关节未动），0.0 表示非静态
+    【Episode数据算子】检测机械臂关节数据的静态状态
+    功能：全局判断机械臂是否处于静止（足够多关节的标准差小于阈值）
+    得分影响因素：
+        1. static_joints_percent（静态关节占比阈值）：默认40%，值越小越容易判定为静态，越大越严格
+        2. epsilon（标准差阈值）：默认1e-3，值越小越严格（更少关节被判定为静态），值越大越宽松
+        3. 关节数据的标准差：每个关节的全局标准差越小，越容易被判定为静态
+        4. 关节数量（维度数）：维度越多，需要满足静态的关节数越多
+    分数/返回值：
+        - 返回值：0.0 或 1.0 的浮点数
+        - 1.0：静态（≥40%的关节标准差<1e-3），质检得分越低（最终会用1 - 该值计算得分）
+        - 0.0：非静态（<40%的关节满足静态条件），质检得分越高
+        - 特殊值：
+          - 无维度（dim=0）：返回1.0
+          - 单帧数据：返回1.0（所有关节视为静态）
     """
     if data.ndim != 2:
         raise ValueError("Input data must be 2D array of shape (time_steps, dimensions).")
@@ -227,78 +467,48 @@ def detect_static_joint(
 def detect_stable_then_jump_frames(
     video_path: str,
     hash_size: int = 16,
-    stable_distance_threshold: int = 1,  # 静止期：phash 距离 <= 1
-    min_stable_frames: int = 2,  # 静止期最少连续帧数（关键帧对）
+    stable_distance_threshold: int = 1,
+    min_stable_frames: int = 2,
+    episode_idx: int = None
 ) -> tuple[int, int]:
     """
-    检测在连续静止关键帧之后，图像跳变的最大 phash 距离。
-
-    算法逻辑：
-    1. 提取所有关键帧（I-frame）
-    2. 计算相邻关键帧的 phash 汉明距离
-    3. 找到所有“连续多个距离 <= 阈值”的静止段
-    4. 对每个静止段，查看其**后一个距离**（即跳变）
-    5. 返回这些跳变距离中的最大值
-
-    Args:
-        video_path: 视频路径
-        hash_size: phash 哈希尺寸（推荐 16）
-        stable_distance_threshold: 判断为“静止”的最大 phash 距离
-        min_stable_frames: 静止段最少包含多少个“小距离”（即连续静止帧对数）
-
-    Returns:
-        int: 所有“静止后跳变”中，跳变距离的最大值。如果没有符合条件的跳变，返回 0。
+    辅助函数：检测视频关键帧中“稳定后突然跳变”的最大汉明距离
+    功能：先检测连续稳定的关键帧序列，再找序列后第一个大幅跳变的汉明距离
+    得分影响因素：
+        1. hash_size（哈希尺寸）：默认16，尺寸越大哈希越精细，汉明距离值越大
+        2. stable_distance_threshold（稳定阈值）：默认1，值越小稳定判定越严格
+        3. min_stable_frames（最小稳定帧数）：默认2，值越大越难检测到稳定序列
+        4. 关键帧数量：关键帧越少，越难检测到跳变
+    返回值：(max_jump, frame_idx)
+        - max_jump：稳定后跳变的最大汉明距离（≥0）
+        - frame_idx：该跳变对应的关键帧索引
     """
-    try:
-        container = av.open(video_path)
-        stream = container.streams.video[0]
-        stream.thread_count = 1
-    except Exception as e:
-        raise RuntimeError(f"无法打开视频: {e}")
+    if episode_idx is None:
+        raise ValueError("detect_stable_then_jump_frames必须传递episode_idx参数")
+    # 从缓存取（只解码一次）
+    cache = decode_video_once(video_path,episode_idx)
+    if not cache["valid"]:
+        return 0, 0
 
-    keyframe_hashes = []
-    total_frame_count = 0
-    keyframe_count = 0
-
-    # 提取所有关键帧的 phash
-    for packet in container.demux(video=0):
-        for frame in packet.decode():
-            total_frame_count += 1
-
-            if not (frame.key_frame or frame.pict_type == "I"):
-                continue
-
-            try:
-                img = frame.to_image()
-                h = imagehash.phash(img, hash_size=hash_size)
-                keyframe_hashes.append(h)
-                keyframe_count += 1
-            except Exception as e:
-                print(f"处理第 {total_frame_count - 1} 帧时出错: {e}")
-                continue
-
-    container.close()
+    keyframe_hashes = cache["keyframe_hashes"]
 
     if len(keyframe_hashes) < 2:
-        return 0  # 帧数不足
+        return 0, 0
 
-    # 计算相邻关键帧的 phash 距离
     distances = [
-        keyframe_hashes[i] - keyframe_hashes[i - 1] for i in range(1, len(keyframe_hashes))
+        keyframe_hashes[i] - keyframe_hashes[i-1]
+        for i in range(1, len(keyframe_hashes))
     ]
 
-    max_jump = 0  # 存储最大跳变距离
+    max_jump = 0
     frame_idx = 0
 
-    # 遍历所有可能的跳变点（从第 min_stable_frames 个距离开始）
     for i in range(min_stable_frames, len(distances)):
-        # 检查前 min_stable_frames 个距离是否都 <= 阈值（静止段）
         is_stable = all(
-            d <= stable_distance_threshold for d in distances[i - min_stable_frames : i]
+            d <= stable_distance_threshold
+            for d in distances[i - min_stable_frames:i]
         )
-
         if is_stable:
-            # 当前距离就是“跳变”
             jump_distance = distances[i]
             if jump_distance > max_jump:
                 max_jump = jump_distance
@@ -308,193 +518,73 @@ def detect_stable_then_jump_frames(
 
 
 @episode_video_checker_registry("max_frame_stable_then_jump_rate")
-def dectect_max_frame_stable_then_jump(video_paths: list[str | Path]) -> float:
+def dectect_max_frame_stable_then_jump(video_paths: list[str | Path], episode_idx: int = None) -> float:
+    """
+    【Episode视频算子】检测视频稳定后跳变的最大汉明距离
+    功能：计算所有视频中“稳定后跳变”的最大汉明距离，并归一化到0~1范围
+    得分影响因素：
+        1. 视频关键帧的跳变程度：跳变越大，max_jump值越大，返回分数越高
+        2. 视频文件有效性：视频不存在/无法解码，直接返回1.0（最高异常分）
+        3. 关键帧数量：关键帧越少，越难检测到跳变，分数越低
+    分数/返回值：
+        - 返回值：0.0 ~ 1.0 的浮点数（max_jump / 100）
+        - 分数越高：跳变越严重，视频越异常，质检得分越低（最终会用1 - 该值计算得分）
+        - 特殊值：
+          - 0.0：无跳变（所有关键帧稳定）
+          - 1.0：跳变汉明距离≥100 或 视频无效
+          - 无关键帧：返回0.0
+    """
     max_jump = 0
     for video_path in video_paths:
         if not Path(video_path).exists() or not Path(video_path).is_file():
             return 1
-        current_jump, _ = detect_stable_then_jump_frames(str(video_path))
+        current_jump, _ = detect_stable_then_jump_frames(str(video_path), episode_idx=episode_idx)
         max_jump = max(max_jump, current_jump)
     return max_jump / 100
 
-
 @episode_video_checker_registry("max_frame_jump_dist")
 def detect_max_frame_jump_dist(
-    video_paths: list[str | Path], max_dist_threshold: int = 50
+    video_paths: list[str | Path], max_dist_threshold: int = 50, episode_idx: int = None
 ) -> float:
+    """
+    【Episode视频算子】检测视频关键帧的最大跳变距离是否超标
+    功能：判断视频关键帧的最大汉明距离是否超过阈值，返回二值结果
+    得分影响因素：
+        1. max_dist_threshold（跳变阈值）：默认50，值越小越容易判定为异常，越大越宽松
+        2. 关键帧汉明距离：距离越大，越容易超过阈值
+        3. 视频文件有效性：视频不存在/无法解码，直接返回1.0（异常）
+    分数/返回值：
+        - 返回值：0.0 或 1.0 的浮点数
+        - 1.0：最大跳变距离>50 或 视频无效 → 视频异常，质检得分低
+        - 0.0：最大跳变距离≤50 → 视频正常，质检得分高
+        - 特殊值：无关键帧时返回0.0（视为正常）
+    """
     max_jump = 0
     for video_path in video_paths:
         if not Path(video_path).exists() or not Path(video_path).is_file():
             return 1
         current_jump, _ = detect_stable_then_jump_frames(
-            str(video_path), stable_distance_threshold=1, min_stable_frames=0
+            str(video_path), stable_distance_threshold=1, min_stable_frames=0, episode_idx=episode_idx
         )
         max_jump = max(max_jump, current_jump)
 
     return 1 if max_jump > max_dist_threshold else 0
 
 
-# @episode_video_checker_registry("frame_jump")
-# def detect_max_frame_jump_and_static(
-#     video_paths: list[str | Path],
-#     hash_size: int = 32,
-#     static_threshold: int = 1,
-#     max_phash_distance_threshold: int = 200,
-#     max_static_frames_count_threshold: int = 5,
-#     max_frames: int = None,  # 可选：限制处理帧数（调试用）
-# ) -> float:
-#     """
-#     使用 PyAV 和 pHash 分析视频帧变化。
-
-#     参数:
-#         video_path (str): 视频文件路径
-#         hash_size (int): pHash 尺寸（默认 8 → 64位哈希）
-#         static_threshold (int): 判定静止的最大汉明距离（默认 2）
-#         max_frames (int or None): 最大处理帧数（None 表示全部）
-
-#     返回:
-#         dict: {
-#             'max_hamming_distance': int,
-#             'max_static_frames': int,
-#             'total_frames': int
-#         }
-#     """
-#     for video_path in video_paths:
-#         if not Path(video_path).exists() or not Path(video_path).is_file():
-#             return 1
-#         container = av.open(video_path)
-#         stream = container.streams.video[0]
-
-#         prev_hash = None
-#         max_hamming = 0
-#         current_static_run = 0
-#         max_static_run = 0
-#         frame_count = 0
-#         max_static_frame_idx = 0
-
-#         try:
-#             for frame in container.decode(stream):
-#                 if max_frames and frame_count >= max_frames:
-#                     break
-
-#                 # 转为 RGB numpy 数组
-#                 img_array = frame.to_rgb().to_ndarray()
-#                 pil_img = Image.fromarray(img_array)
-
-#                 # 计算 pHash
-#                 curr_hash = imagehash.phash(pil_img, hash_size=hash_size)
-
-#                 if prev_hash is not None:
-#                     hamming_dist = curr_hash - prev_hash  # imagehash 重载了减号为汉明距离
-#                     max_hamming = max(max_hamming, hamming_dist)
-
-#                     if hamming_dist <= static_threshold:
-#                         current_static_run += 1
-#                         if current_static_run > max_static_run:
-#                             max_static_run = current_static_run
-#                             max_static_frame_idx = frame_count
-
-#                         max_static_run = max(max_static_run, current_static_run)
-#                     else:
-#                         current_static_run = 0  # 重置静止计数
-
-#                 prev_hash = curr_hash
-#                 frame_count += 1
-
-#         finally:
-#             container.close()
-
-#         # 注意：连续静止帧数 = 连续“间隔”数 + 1
-#         # 例如：3 帧完全相同 → 有 2 个“静止间隔”，但实际静止帧数为 3
-#         # 我们这里统计的是“连续静止的帧总数”，所以需要 +1
-#         max_static_frames = (
-#             max_static_run + 1 if max_static_run > 0 else 1 if frame_count > 0 else 0
-#         )
-
-#         if (
-#             max_hamming > max_phash_distance_threshold
-#             or max_static_frames > max_static_frames_count_threshold
-#         ):
-#             return 1
-
-#     return 0
-
-
-# @episode_video_checker_registry("frame_jump")
-# def detect_max_frame_jump_and_static(
-#     video_paths: list[str | Path],
-#     hash_size: int = 16,
-#     jump_threshold: int = 30,  # 新增：判定跳帧所需的最小汉明距离
-#     max_frames: int = None,
-# ) -> float:
-#     """
-#     改进版：使用三帧窗口检测“跳帧”（孤立大幅变化帧）+ 静止帧检测。
-
-#     跳帧判定条件：
-#         当前帧与前一帧、后一帧的 pHash 汉明距离均 > jump_threshold，
-#         且前一帧与后一帧之间的距离 <= jump_threshold（可选增强条件）。
-
-#     返回:
-#         1 表示检测到异常（跳帧或静止帧超标），0 表示正常。
-#     """
-#     for video_path in video_paths:
-#         if not Path(video_path).exists() or not Path(video_path).is_file():
-#             return 1
-
-#         container = av.open(video_path)
-#         stream = container.streams.video[0]
-
-#         frame_hashes = []  # 存储所有帧的 pHash（或最多 max_frames 帧）
-#         frame_count = 0
-
-#         try:
-#             for frame in container.decode(stream):
-#                 if max_frames and frame_count >= max_frames:
-#                     break
-#                 img_array = frame.to_rgb().to_ndarray()
-#                 pil_img = Image.fromarray(img_array)
-#                 phash = imagehash.phash(pil_img, hash_size=hash_size)
-#                 frame_hashes.append(phash)
-#                 frame_count += 1
-#         finally:
-#             container.close()
-
-#         if frame_count == 0:
-#             return 1  # 无帧，视为异常
-
-#         # === 跳帧检测：三帧窗口 ===
-#         jump_detected = False
-#         n = len(frame_hashes)
-#         max_jump_dist = 0
-#         for i in range(2, n - 1):  # 跳过首尾帧
-#             prev_hash_2 = frame_hashes[i - 2]
-#             prev_hash = frame_hashes[i - 1]
-#             curr_hash = frame_hashes[i]
-#             next_hash = frame_hashes[i + 1]
-
-#             diff_value_pre = prev_hash_2 - prev_hash
-#             diff_value_curr = prev_hash - curr_hash
-#             diff_value_next = curr_hash - next_hash
-
-#             jump_value_pre = abs(diff_value_pre - diff_value_curr)
-#             jump_value_next = abs(diff_value_curr - diff_value_next)
-
-#             jump_dist = abs(jump_value_pre - jump_value_next)
-#             if jump_dist > max_jump_dist:
-#                 max_jump_dist = jump_dist
-
-
-#         if max_jump_dist > jump_threshold:
-#             return 1
-
-#         if jump_detected:
-#             return 1
-
-#     return 0
-
-
 @data_video_consistency_checker_registry("LengthConsistencyChecker")
-def decect_inconsistent_length(video_paths: list[str | Path], frame_num: int) -> bool:
+def decect_inconsistent_length(video_paths: list[str | Path], frame_num: int,  episode_idx: int = None) -> bool:
+    """
+    【数据-视频一致性算子】检测视频帧数与数据帧数是否一致
+    功能：验证每个视频的帧数是否等于给定的frame_num，不一致则判定为异常
+    得分影响因素：
+        1. frame_num：数据的目标帧数（基准值）
+        2. 视频实际帧数：视频流的frames属性值（部分视频可能返回0/None，会判定为不一致）
+        3. 视频文件有效性：视频不存在/无法打开，直接判定为不一致
+    分数/返回值：
+        - 返回值：bool值（True=不一致，False=一致）
+        - True：帧数不一致 → 标记为bad_episode，最终is_bad=1
+        - False：帧数一致 → 正常，is_bad=0
+    """
     for video_path in video_paths:
         if not Path(video_path).exists() or not Path(video_path).is_file():
             return True
@@ -503,3 +593,450 @@ def decect_inconsistent_length(video_paths: list[str | Path], frame_num: int) ->
             return True
 
     return False
+
+
+def compute_mean_colors(image: np.ndarray) -> dict:
+    """辅助函数：计算图像各通道的平均颜色（BGR）"""
+    return {
+        "B": np.mean(image[:, :, 0]),
+        "G": np.mean(image[:, :, 1]),
+        "R": np.mean(image[:, :, 2]),
+    }
+
+
+@episode_video_checker_registry("video_color_shift_detection")
+def detect_video_color_shift(
+    video_paths: list[str | Path],
+    color_diff_threshold: float = 30.0,
+    episode_idx: int = None
+) -> float:
+    """
+    【Episode视频算子】检测视频帧间颜色突变的占比
+    功能：统计视频中相邻帧颜色差值超过阈值的帧数占比
+    得分影响因素：
+        1. color_diff_threshold（颜色差阈值）：默认30.0，值越小越容易检测到突变，越大越宽松
+        2. 帧间颜色变化：B/G/R通道中最大差值超过阈值则判定为突变
+        3. 视频解码有效性：无法解码/无帧，直接返回1.0（最高异常分）
+        4. 视频帧数：帧数越多，统计越准确
+    分数/返回值：
+        - 返回值：0.0 ~ 1.0 的浮点数，表示颜色突变帧占总有效帧的比例
+        - 分数越高：颜色突变越多，视频越异常，质检得分越低（最终会用1 - 该值计算得分）
+        - 特殊值：
+          - 0.0：无颜色突变（所有帧颜色稳定）
+          - 1.0：全帧突变 或 视频无效
+          - 无有效帧（total_valid_frames=0）：返回1.0
+    """
+    total_color_shift_frames = 0
+    total_valid_frames = 0
+
+    for video_path in video_paths:
+        cache = decode_video_once(video_path, episode_idx=episode_idx)
+        if not cache["valid"]:
+            return 1.0
+
+        all_frames_bgr = cache["all_frames_bgr"]
+        if not all_frames_bgr:
+            return 1.0
+
+        prev_mean = None
+        for img in all_frames_bgr:
+            B = np.mean(img[:, :, 0])
+            G = np.mean(img[:, :, 1])
+            R = np.mean(img[:, :, 2])
+            curr_mean = (B, G, R)
+
+            if prev_mean is not None:
+                diff = max(abs(curr_mean[0]-prev_mean[0]),
+                           abs(curr_mean[1]-prev_mean[1]),
+                           abs(curr_mean[2]-prev_mean[2]))
+                if diff > color_diff_threshold:
+                    total_color_shift_frames += 1
+                total_valid_frames += 1
+
+            prev_mean = curr_mean
+
+    if total_valid_frames == 0:
+        return 1.0
+
+    return total_color_shift_frames / total_valid_frames
+
+
+def compute_phash(image: np.ndarray, hash_size: int = 16) -> str:
+    """计算图像的感知哈希（复用原有解码的BGR帧，无需重复解码）"""
+    # 转换为灰度图
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # 调整大小
+    resized = cv2.resize(gray, (hash_size, hash_size))
+    # 计算DCT
+    dct = cv2.dct(np.float32(resized))
+    # 取左上角8x8区域的平均值
+    dct_left = dct[:8, :8]
+    avg = np.mean(dct_left)
+    # 生成二进制哈希
+    phash = "".join(["1" if x > avg else "0" for x in dct_left.flatten()])
+    return phash
+
+def hamming_distance(hash1: str, hash2: str) -> int:
+    """计算两个哈希的汉明距离"""
+    return sum(c1 != c2 for c1, c2 in zip(hash1, hash2))
+
+@episode_video_checker_registry("consecutive_static_frames")
+def detect_consecutive_static_frames(
+    video_paths: list[str | Path],
+    phash_dist_threshold: int = 5,
+    static_frames_threshold: int = 10,
+    sample_count: int = 4,  # 均匀采样的关键帧数量
+    episode_idx: int = None
+) -> float:
+    """
+    【Episode视频算子】混合检测视频卡死+连续静止帧占比（适配机器人左右手交替场景）
+    核心优化：
+        1. 卡死判定：先统计关键帧总数，再均匀采样4个关键帧比对，避免局部连续重复误判；
+        2. 静止占比：基于全部视频帧（剔除首尾5%）计算，保证统计全面性；
+        3. 日志输出关键帧数量，方便调试。
+    返回值规则：
+        0.0 = 无连续静止帧（正常）
+        1.0 = 采样关键帧哈希一致（相机卡死）/视频无效
+        0~1 之间 = 中间90%全帧内连续静止占比（越高越异常）
+    """
+    max_abnormal_score = 1.0
+    TRIM_RATIO = 0.05  # 统计静止占比时剔除首尾5%的帧
+
+    for video_path in video_paths:
+        video_path = Path(video_path)
+        if not video_path.exists() or not video_path.is_file():
+            return 1.0
+        
+        # 1. 从缓存获取解码数据
+        cache = decode_video_once(video_path, episode_idx=episode_idx)
+        if not cache["valid"]:
+            return 1.0
+        
+        # 关键帧相关（核心：先统计数量，再均匀采样）
+        keyframe_hashes = cache["keyframe_hashes"]
+        total_keyframes = len(keyframe_hashes)
+        
+        # 2. 卡死判定：均匀采样关键帧比对（替代原相邻比对）
+        camera_freeze_detected = False
+        # 边界：关键帧数量≥采样数，才进行采样比对
+        if total_keyframes >= sample_count:
+            # 计算采样步长（均匀分布）
+            sample_step = math.ceil(total_keyframes / sample_count)
+            # 选取采样的关键帧索引
+            sample_indices = [i * sample_step for i in range(sample_count)]
+            # 确保最后一个采样索引不越界
+            sample_indices[-1] = min(sample_indices[-1], total_keyframes - 1)
+            
+            # 获取采样关键帧的哈希
+            sample_hashes = [keyframe_hashes[idx] for idx in sample_indices]
+            # 检查所有采样哈希是否完全一致
+            first_hash = sample_hashes[0]
+            all_sample_same = True
+            for hash_val in sample_hashes[1:]:
+                # 兼容字符串/数值型哈希
+                if isinstance(first_hash, str) and isinstance(hash_val, str):
+                    dist = hamming_distance(first_hash, hash_val)
+                else:
+                    dist = first_hash - hash_val
+                
+                if dist != 0:
+                    all_sample_same = False
+                    break
+            
+            # 所有采样帧哈希一致 → 判定相机卡死
+            if all_sample_same:
+                camera_freeze_detected = True
+                print(f"⚠️ [严重异常] Episode {episode_idx} 视频 {video_path} 均匀采样{sample_count}个关键帧（索引：{sample_indices}）哈希完全一致，判定相机卡死")
+        
+        # 检测到卡死，直接返回最高异常分
+        if camera_freeze_detected:
+            return 1.0
+        
+        # 3. 静止占比统计：基于全部视频帧（剔除首尾5%）
+        all_frames_bgr = cache.get("all_frames_bgr", [])
+        total_frames = len(all_frames_bgr)
+        all_frame_hashes = []
+        if total_frames > 0:
+            for frame_bgr in all_frames_bgr:
+                all_frame_hashes.append(compute_phash(frame_bgr))
+        
+        abnormal_score = 0.0
+        max_static_frames = 0
+        if total_frames >= 2 and len(all_frame_hashes) == total_frames:
+            # 剔除首尾5%的帧
+            trim_count = int(total_frames * TRIM_RATIO)
+            start_frame_idx = trim_count
+            end_frame_idx = total_frames - trim_count
+            middle_frame_hashes = all_frame_hashes[start_frame_idx:end_frame_idx]
+            middle_frames_total = len(middle_frame_hashes)
+            
+            if middle_frames_total >= 2:
+                static_count = 1
+                prev_hash = middle_frame_hashes[0]
+                for frame_idx in range(1, middle_frames_total):
+                    current_hash = middle_frame_hashes[frame_idx]
+                    distance = hamming_distance(prev_hash, current_hash)
+                    
+                    if distance <= phash_dist_threshold:
+                        static_count += 1
+                        max_static_frames = max(max_static_frames, static_count)
+                    else:
+                        static_count = 1
+                    
+                    prev_hash = current_hash
+                abnormal_score = max_static_frames / middle_frames_total if middle_frames_total > 0 else 1.0
+            else:
+                abnormal_score = 0.0
+        else:
+            abnormal_score = 0.0
+        
+        # 更新最小异常分
+        if abnormal_score < max_abnormal_score:
+            max_abnormal_score = abnormal_score
+
+    return max_abnormal_score
+
+
+@episode_video_checker_registry("camera_resolution_consistency")
+def detect_camera_resolution_consistency(
+    video_paths: list[str | Path],
+    episode_idx: int = None
+) -> float:
+    """
+    【适配真实目录结构】自动从视频路径推导info.json路径，检测分辨率一致性
+    目录结构（关键）：
+        根目录：~/Documents/after_convert/Agilex_Cobot_Magic_Agilex_Cobot_Magic_pour_drink_bottle_cup/
+        ├── meta/
+        │   └── info.json （目标文件）
+        └── videos/
+            └── chunk-000/
+                └── observation.images.cam_high_rgb/
+                    └── episode_000000.mp4 （视频文件）
+    返回值规则：
+        0.0 = 所有相机分辨率一致（正常）
+        1.0 = 任意异常（分辨率不匹配/文件损坏/路径推导失败）
+    """
+    # 0. 校验视频路径是否有效
+    if not video_paths or not Path(video_paths[0]).exists():
+        return 1.0
+
+    # 1. 自动推导info.json路径（核心适配你的目录结构）
+    first_video_path = Path(video_paths[0]).absolute()
+    info_json_path = None
+    
+    # 向上回溯目录，找到包含 "meta" 文件夹的根目录
+    current_dir = first_video_path.parent
+    while current_dir != current_dir.parent:  # 直到根目录
+        meta_dir = current_dir / "meta"
+        if meta_dir.exists() and meta_dir.is_dir():
+            info_json_path = meta_dir / "info.json"
+            break
+        current_dir = current_dir.parent
+    
+    # 校验：未找到info.json，直接标记异常
+    if not info_json_path or not info_json_path.exists():
+        print(f"未找到info.json，路径推导失败：{info_json_path}")
+        return 1.0
+
+    # 2. 读取info.json，提取所有相机的标准分辨率（修复核心：正确解析层级）
+    try:
+        with open(info_json_path, "r", encoding="utf-8") as f:
+            info_data = json.load(f)
+        
+        # 构建相机分辨率映射表：{相机完整名: (标准宽, 标准高)}
+        # 修复点1：直接遍历features的一级key，筛选出相机相关的key
+        camera_resolution_map = {}
+        features = info_data.get("features", {})
+        
+        # 筛选规则：key以 "observation.images." 开头，且是视频类型
+        for cam_full_key, cam_info in features.items():
+            if not cam_full_key.startswith("observation.images."):
+                continue  # 跳过非相机的key（如state/action等）
+            
+            # 修复点2：正确提取分辨率（从info里拿）
+            cam_detail_info = cam_info.get("info", {})
+            standard_width = cam_detail_info.get("video.width", 0)
+            standard_height = cam_detail_info.get("video.height", 0)
+            
+            if standard_width > 0 and standard_height > 0:
+                camera_resolution_map[cam_full_key] = (standard_width, standard_height)
+        
+        # 校验：无有效相机分辨率配置
+        if not camera_resolution_map:
+            print(f"info.json中未找到有效相机分辨率配置，camera_resolution_map={camera_resolution_map}")
+            return 1.0
+        
+        # print(f"成功解析相机分辨率：{camera_resolution_map}")  # 调试用，可保留
+            
+    except Exception as e:
+        print(f"解析info.json失败：{str(e)}")
+        return 1.0  # info.json解析失败
+
+    # 3. 遍历所有视频，检查分辨率
+    for video_path in video_paths:
+        video_path = Path(video_path).absolute()
+        
+        # 跳过不存在的视频
+        if not video_path.exists() or not video_path.is_file():
+            print(f"视频文件不存在：{video_path}")
+            return 1.0
+        
+        # 提取相机完整名（视频父目录名，如 observation.images.cam_high_rgb）
+        cam_full_name = video_path.parent.name
+        
+        # 校验：该相机是否在info.json中有配置
+        if cam_full_name not in camera_resolution_map:
+            print(f"相机{cam_full_name}不在info.json的配置列表中，配置列表：{camera_resolution_map.keys()}")
+            return 1.0
+        
+        # 获取标准分辨率
+        standard_width, standard_height = camera_resolution_map[cam_full_name]
+        
+        # 4. 读取视频实际分辨率（不解码帧，仅读流信息）
+        try:
+            container = av.open(str(video_path))
+            video_stream = None
+            for stream in container.streams:
+                if stream.type == "video":
+                    video_stream = stream
+                    break
+            if video_stream is None:
+                container.close()
+                print(f"视频{video_path}无视频流")
+                return 1.0
+            
+            actual_width = video_stream.width
+            actual_height = video_stream.height
+            container.close()
+            
+            # 分辨率不一致，直接返回异常
+            if actual_width != standard_width or actual_height != standard_height:
+                print(f"分辨率不匹配：视频{video_path}实际({actual_width},{actual_height})，标准({standard_width},{standard_height})")
+                return 1.0
+                
+        except Exception as e:
+            print(f"读取视频{video_path}分辨率失败：{str(e)}")
+            return 1.0  # 视频打开/读取失败
+
+    # 所有视频分辨率都匹配，返回正常
+    return 0.0
+
+@episode_data_checker_registry("motion_data_valid_frame_range")
+def get_valid_motion_frame_range_from_data(
+    data: np.ndarray,
+    window_size: int = 5,
+    threshold: float = 0.01
+) -> tuple[int, int]:
+    """
+    【Episode数据算子】基于运动数据获取有效帧区间（剔除首尾静止帧，留1帧余量）
+    返回：(start_index, end_index) 保证 0 ≤ start ≤ end < 总帧数
+    """
+    if data is None or data.size == 0:
+        return (-1, -1)
+    frame_count = data.shape[0]
+    if frame_count <= 1:
+        return (0, frame_count - 1)
+    
+    data_norm = normalize_per_dimension(data)
+    
+    # 首部第一个非静止帧
+    first_motion_frame = 0
+    for i in range(0, frame_count - window_size + 1, 1):
+        if not is_window_static(data_norm[i:i+window_size], threshold):
+            first_motion_frame = i
+            break
+    
+    # 尾部最后一个非静止帧
+    last_motion_frame = frame_count - 1
+    for i in range(frame_count - window_size, -1, -1):
+        if not is_window_static(data_norm[i:i+window_size], threshold):
+            last_motion_frame = i + window_size - 1
+            break
+    
+    # 留1帧余量
+    start_index = max(0, first_motion_frame - 1)  # 首部往前多留1帧
+    end_index = min(frame_count - 1, last_motion_frame + 1)  # 尾部往后多留1帧
+    # 最终兜底：确保start ≤ end
+    start_index = min(start_index, end_index)
+    return (start_index, end_index)
+
+
+@episode_video_checker_registry("video_valid_frame_range")
+def get_valid_motion_frame_range_from_video(
+    video_paths: list[str | Path] | str | Path,
+    episode_idx: int,
+    phash_dist_threshold: int = 5  # 仅保留单帧阈值，移除连续帧参数
+) -> tuple[int, int]:
+    """
+    【核心功能】
+    1. 对单个视频：仅通过单帧哈希距离>阈值，找到首尾第一个非静止帧，剔除首尾静止帧
+    2. 对多视频：取所有视频中「最小起始帧 + 最大结束帧」（最宽容区间）
+    返回：(start_index, end_index) 保证 0 ≤ start ≤ end < 总帧数
+    """
+    # 1. 统一路径格式：单路径转列表
+    if not isinstance(video_paths, list):
+        video_paths = [video_paths]
+    
+    all_valid_ranges = []  # 存储每个视频的有效区间
+    total_frames_list = []  # 存储每个视频的总帧数
+
+    # 2. 遍历每个视频，计算其有效区间（仅单帧判定剔除首尾静止帧）
+    for path in video_paths:
+        single_path = Path(path)
+        if not single_path.exists() or not single_path.is_file():
+            continue
+        
+        # 解码视频（复用你的缓存逻辑）
+        cache = decode_video_once(single_path, episode_idx=episode_idx)
+        if not cache["valid"] or len(cache["all_frames_bgr"]) <= 1:
+            # 无效视频/帧数过少，直接返回全区间
+            total_frames = len(cache["all_frames_bgr"]) if cache["valid"] else 0
+            all_valid_ranges.append((0, max(0, total_frames - 1)))
+            total_frames_list.append(total_frames)
+            continue
+        
+        all_frames_bgr = cache["all_frames_bgr"]
+        total_frames = len(all_frames_bgr)
+        frame_hashes = [compute_phash(img) for img in all_frames_bgr]
+
+        # ===================== 核心：找首部第一个非静止帧 =====================
+        start_idx = 0
+        for i in range(1, total_frames):
+            dist = hamming_distance(frame_hashes[i-1], frame_hashes[i])
+            if dist > phash_dist_threshold:
+                start_idx = i  # 找到第一个非静止帧
+                break
+        start_idx = max(0, start_idx - 1)  # 留1帧余量
+
+        # ===================== 核心：找尾部最后一个非静止帧 =====================
+        end_idx = total_frames - 1
+        for i in range(total_frames - 1, 0, -1):
+            dist = hamming_distance(frame_hashes[i-1], frame_hashes[i])
+            if dist > phash_dist_threshold:
+                end_idx = i  # 找到最后一个非静止帧
+                break
+        end_idx = min(total_frames - 1, end_idx + 1)  # 留1帧余量
+
+        # 兜底：确保start ≤ end
+        start_idx = min(start_idx, end_idx)
+        all_valid_ranges.append((start_idx, end_idx))
+        total_frames_list.append(total_frames)
+        # 可选调试日志：查看单个视频的剔除结果
+        # print(f"[调试] {single_path.name} | 总帧：{total_frames} | 有效区间：({start_idx}, {end_idx})")
+
+    # 3. 处理无有效视频的情况
+    if not all_valid_ranges:
+        return (-1, -1)
+    
+    # 4. 多视角最宽容区间：最小start + 最大end
+    min_start = min([r[0] for r in all_valid_ranges])  # 保留最早的起始帧
+    max_end = max([r[1] for r in all_valid_ranges])    # 保留最晚的结束帧
+
+    # 5. 最终边界校验（避免越界）
+    if total_frames_list:
+        max_total = max(total_frames_list)
+        max_end = min(max_end, max_total - 1)
+    min_start = max(0, min_start)
+    min_start = min(min_start, max_end)
+
+    return (min_start, max_end)

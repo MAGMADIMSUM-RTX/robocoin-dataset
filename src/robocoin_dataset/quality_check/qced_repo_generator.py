@@ -171,7 +171,8 @@ def _gen_output_meta_info_file(
             data["total_videos"] = total_episodes * videos_per_episode
             data["total_chunks"] = (total_episodes + chunks_size - 1) // chunks_size
             data["splits"]["train"] = output_train_split
-            json.dump(data, out_f)
+            json.dump(data, out_f, indent=4, ensure_ascii=False)
+
 
 
 def _gen_output_episodes_jsonl_file(
@@ -538,9 +539,10 @@ def _gen_one_qced_repo_gen_task(
 def _get_bad_episodes(
     session: Session,
     dataset_uuid: str,
-    state_data_score_threshold: float = 0.85,
-    action_data_score_threshold: float = 0.85,
-    video_score: float = 0.9,
+    state_data_score_threshold: float = 0.75,
+    action_data_score_threshold: float = 0.75,
+    video_score: float = 0.87,
+    consecutive_static_frames_threshold: float = 0.6,
 ) -> set[int]:
     items = (
         session.query(EpisodeQcDB)
@@ -564,6 +566,12 @@ def _get_bad_episodes(
             bad_episodes.add(item.episode_idx)
             continue
         if item.video_score < video_score:
+            bad_episodes.add(item.episode_idx)
+            continue
+        if item.episode_video_consecutive_static_frames_score < consecutive_static_frames_threshold:
+            bad_episodes.add(item.episode_idx)
+            continue
+        if item.is_state_frame_diff:
             bad_episodes.add(item.episode_idx)
 
     return bad_episodes
@@ -658,10 +666,7 @@ class QualityCheckedRepoGeneratorServer(TaskServer):
         heartbeat_interval: float = 30.0,  # 服务端每30秒发一次 ping
         timeout: float = 15.0,  # 等待 pong 超过15秒则断开
         logger: logging.Logger | None = None,
-        state_data_score_threshold: float = 0.85,
-        action_data_score_threshold: float = 0.85,
-        video_score_threshold: float = 0.9,
-        min_episodes_num: int = 10,
+        qc_config: dict | None = None,
         ds_api_key: str | None = None,
         target_dataset_uuid: str | None = None,  # 新增：支持指定UUID
     ) -> None:
@@ -678,10 +683,11 @@ class QualityCheckedRepoGeneratorServer(TaskServer):
         self.db = DatasetDatabase(self.db_file_path)
         self.logger = logger or logging.getLogger(__name__)
 
-        self.state_data_score_threshold = state_data_score_threshold
-        self.action_data_score_threshold = action_data_score_threshold
-        self.video_score_threshold = video_score_threshold
-        self.min_episodes_num = min_episodes_num
+        self.state_data_score_threshold = qc_config.get("state_data_score_threshold", 0.75)
+        self.action_data_score_threshold = qc_config.get("action_data_score_threshold", 0.75)
+        self.video_score_threshold = qc_config.get("video_score_threshold", 0.87)
+        self.min_episodes_num = qc_config.get("min_episodes_num", 30)
+        self.consecutive_static_frames_threshold = qc_config.get("consecutive_static_frames_threshold", 0.6)
         self.ds_api_key = ds_api_key
         self.target_dataset_uuid = target_dataset_uuid  # 新增：保存指定UUID
 
@@ -728,6 +734,7 @@ class QualityCheckedRepoGeneratorServer(TaskServer):
                     state_data_score_threshold=self.state_data_score_threshold,
                     action_data_score_threshold=self.action_data_score_threshold,
                     video_score=self.video_score_threshold,
+                    consecutive_static_frames_threshold=self.consecutive_static_frames_threshold,
                 )
             else:
                 # 原有逻辑：自动筛选待处理任务
@@ -740,6 +747,7 @@ class QualityCheckedRepoGeneratorServer(TaskServer):
                         state_data_score_threshold=self.state_data_score_threshold,
                         action_data_score_threshold=self.action_data_score_threshold,
                         video_score=self.video_score_threshold,
+                        consecutive_static_frames_threshold=self.consecutive_static_frames_threshold,
                     )
 
             if not dataset_uuid:

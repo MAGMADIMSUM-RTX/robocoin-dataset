@@ -39,6 +39,9 @@ from robocoin_dataset.quality_check.checker_registry import (
     EPISODE_VIDEO_CHECKERS,
 )
 from robocoin_dataset.utils.le_path import get_episodes_frames, get_parquet_files, get_video_files
+# 替换为实际的checkers模块路径
+from robocoin_dataset.quality_check.checkers import clear_video_decode_cache
+
 
 QC_CONFIG = "qc_config"
 QC_RESULT = "qc_result"
@@ -141,6 +144,9 @@ def quality_check_pipeline(
         state_data_scores_perchecker = defaultdict(dict)
         action_data_scores_perchecker = defaultdict(dict)
 
+        # 定义不参与分数计算的data算子名单
+        data_checkers_skip_score = {"motion_data_valid_frame_range"}
+
         for idx, parquet_path in tqdm.tqdm(
             enumerate(parquet_files),
             desc="Checking episodes",
@@ -161,33 +167,46 @@ def quality_check_pipeline(
                 name = checker_cfg.get("name")
                 weight = checker_cfg.get("score_weight")
                 checker_flag = checker_cfg.get("should_check", False)
-                if checker_flag:
+                if not checker_flag:
+                    continue
+                
+                # 校验基础配置
+                if not name:
+                    raise ValueError("Each episode_data_checker config must have 'name'.")
+                if name not in data_checkers_skip_score and (not weight or weight <= 0.001):
+                    raise ValueError(f"Episode data checker {name} must have valid 'weight'.")
+
+                func = EPISODE_DATA_CHECKERS[name]
+                params = checker_cfg.get("params", {})
+                
+                # 执行算子（无论是否参与分数计算，都执行）
+                state_checker_result = func(state_data, **params)
+                action_checker_result = func(action_data, **params)
+
+                # 仅非跳过算子参与分数计算
+                if name not in data_checkers_skip_score:
                     total_weight += weight
-                    if not name or not weight:
-                        raise ValueError(
-                            "Each episode_data_checker config must have 'name' and 'weight'."
-                        )
-                    if weight <= 0.001:
-                        raise ValueError(
-                            "Each episode_data_checker config must have valid 'weight'."
-                        )
-                    func = EPISODE_DATA_CHECKERS[name]
-                    params = checker_cfg.get("params", {})
-                    state_checker_score = 1 - func(state_data, **params)
+                    state_checker_score = 1 - state_checker_result
+                    action_checker_score = 1 - action_checker_result
                     state_score += state_checker_score * weight
-
-                    action_checker_score = 1 - func(action_data, **params)
-
                     action_score += action_checker_score * weight
-                    state_data_scores_perchecker[idx][name] = state_checker_score
-                    action_data_scores_perchecker[idx][name] = action_checker_score
                     checked = True
-            if not checked:
-                continue
-            state_data_scores[idx] = state_score / total_weight
-            action_data_scores[idx] = action_score / total_weight
+                else:
+                    # 跳过分数计算，但记录原始结果（有效帧区间）
+                    state_checker_score = state_checker_result
+                    action_checker_score = action_checker_result
+
+                # 记录每个checker的结果（无论是否参与分数）
+                state_data_scores_perchecker[idx][name] = state_checker_score
+                action_data_scores_perchecker[idx][name] = action_checker_score
+
+            # 只有有有效分数时才计算平均值
+            if checked and total_weight > 0:
+                state_data_scores[idx] = state_score / total_weight
+                action_data_scores[idx] = action_score / total_weight
 
         if not episode_video_checkers_config:
+            clear_video_decode_cache()
             return (
                 {
                     "bad_data_episodes": list(bad_data_episodes),
@@ -199,9 +218,13 @@ def quality_check_pipeline(
                     "action_data_scores_perchecker": action_data_scores_perchecker,
                 },
             )
+        
         video_scores = {}
         video_scores_perchecker = defaultdict(dict)
         video_paths = get_video_files(repo_path)
+        # 定义不参与分数计算的video算子名单
+        video_checkers_skip_score = {"video_valid_frame_range"}
+
         for idx, paths in tqdm.tqdm(
             enumerate(video_paths), desc="Checking videos", unit="video", total=len(video_paths)
         ):
@@ -209,23 +232,48 @@ def quality_check_pipeline(
                 continue
             total_weight = 0
             video_score = 0
+            checked_video = False
             for checker_cfg in episode_video_checkers_config:
                 name = checker_cfg.get("name")
                 func = EPISODE_VIDEO_CHECKERS[name]
                 params = checker_cfg.get("params", {})
                 weight = checker_cfg.get("score_weight")
                 checker_flag = checker_cfg.get("should_check", False)
-                if checker_flag:
+                if not checker_flag:
+                    continue
+                
+                # 校验基础配置
+                if not name:
+                    raise ValueError("Each episode_video_checker config must have 'name'.")
+                if name not in video_checkers_skip_score and (not weight or weight <= 0.001):
+                    raise ValueError(f"Episode video checker {name} must have valid 'weight'.")
+
+                # 执行算子（无论是否参与分数计算，都执行）
+                video_checker_result = func(paths, episode_idx=idx, **params)
+
+                # 仅非跳过算子参与分数计算
+                if name not in video_checkers_skip_score:
                     total_weight += weight
-                    if not name:
-                        raise ValueError("Each episode_video_checker config must have 'name'.")
-
-                    video_checker_score = 1 - func(paths, **params)
+                    video_checker_score = 1 - video_checker_result
+                    # 分辨率不一致直接标记为bad
+                    if name == "camera_resolution_consistency" and video_checker_score == 0.0:
+                        bad_data_episodes.add(idx)
+                        break
                     video_score += video_checker_score * weight
-                    video_scores_perchecker[idx][name] = video_checker_score
-            video_score /= total_weight
-            video_scores[idx] = video_score
+                    checked_video = True
+                else:
+                    # 跳过分数计算，记录原始结果（有效帧区间）
+                    video_checker_score = video_checker_result
 
+                # 记录每个checker的结果（无论是否参与分数）
+                video_scores_perchecker[idx][name] = video_checker_score
+
+            # 只有有有效分数时才计算平均值
+            if checked_video and total_weight > 0:
+                video_score /= total_weight
+                video_scores[idx] = video_score
+
+        clear_video_decode_cache()
         return (
             {
                 "bad_data_episodes": list(bad_data_episodes),
@@ -242,6 +290,7 @@ def quality_check_pipeline(
 
     except Exception:
         raise
+
 
 
 def _gen_one_dataset_quality_check_task(
@@ -268,12 +317,34 @@ def _gen_one_dataset_quality_check_task(
     session.commit()
     return item.dataset_uuid, item.convert_path, item.device_model, item.device_model_version
 
+def get_max_coverage_range(*ranges) -> tuple[int, int]:
+    """
+    从多个帧区间元组中提取最大覆盖范围（最左start + 最右end）
+    自动过滤无效区间（start>end/负数），兜底返回(0,0)
+    """
+    valid_starts = []
+    valid_ends = []
+    
+    # 遍历所有传入的区间，筛选有效值
+    for start, end in ranges:
+        if start >= 0 and end >= start:  # 仅保留有效区间
+            valid_starts.append(start)
+            valid_ends.append(end)
+    
+    # 无有效区间返回(0,0)，否则取最小start和最大end
+    if not valid_starts or not valid_ends:
+        return (0, 0)
+    return (min(valid_starts), max(valid_ends))
+
 
 def _build_episode_qc_summary(
     bad_data_episodes: list[int] | None = None,
     state_data_scores: dict[int, float] | None = None,
     action_data_scores: dict[int, float] | None = None,
     video_scores: dict[int, float] | None = None,
+    state_data_scores_perchecker: dict[int, dict] | None = None,  # episode_data算子单独得分
+    action_data_scores_perchecker: dict[int, dict] | None = None,  # episode_data算子单独得分
+    video_scores_perchecker: dict[int, dict] | None = None,       # episode_video算子单独得分
 ) -> dict[int, dict]:
     # 转为 set 加速查找
     if bad_data_episodes is None:
@@ -286,28 +357,114 @@ def _build_episode_qc_summary(
     if video_scores is None:
         video_scores = {}
 
+    state_data_scores_perchecker = state_data_scores_perchecker or defaultdict(dict)
+    action_data_scores_perchecker = action_data_scores_perchecker or defaultdict(dict)
+    video_scores_perchecker = video_scores_perchecker or defaultdict(dict)
     # 假设所有 score 列表长度一致，取其一作为总 episode 数
 
-    # 构建字典
     episode_summary = defaultdict(dict)
+    # 处理异常episode
     for episode_idx in bad_data_episodes:
+        # 提取episode_data算子单独得分
+        state_static_frame_rate_score = state_data_scores_perchecker.get(episode_idx, {}).get("static_frame_rate", 0.0)
+        state_static_joint_score = state_data_scores_perchecker.get(episode_idx, {}).get("static_joint", 0.0)
+        
+        action_static_frame_rate_score = action_data_scores_perchecker.get(episode_idx, {}).get("static_frame_rate", 0.0)
+        action_static_joint_score = action_data_scores_perchecker.get(episode_idx, {}).get("static_joint", 0.0)
+        
+        # 提取episode_video算子单独得分
+        max_frame_stable_then_jump_rate_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_stable_then_jump_rate", 0.0)
+        max_frame_jump_dist_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_jump_dist", 0.0)
+        color_shift_detection_score = video_scores_perchecker.get(episode_idx, {}).get("video_color_shift_detection", 0.0)
+        consecutive_static_frames_score = video_scores_perchecker.get(episode_idx, {}).get("consecutive_static_frames", 0.0)
+        camera_resolution_score = video_scores_perchecker.get(episode_idx, {}).get("camera_resolution_consistency", 0.0)
+        static_frame_diff = abs(state_static_frame_rate_score - action_static_frame_rate_score)
+        is_diff = 1 if static_frame_diff > 0.1 else 0
+
+        state_motion_data_range = state_data_scores_perchecker.get(episode_idx, {}).get("motion_data_valid_frame_range", (0, 0))
+        action_motion_data_range = action_data_scores_perchecker.get(episode_idx, {}).get("motion_data_valid_frame_range", (0, 0))
+        video_data_range = video_scores_perchecker.get(episode_idx, {}).get("video_valid_frame_range", (0, 0))
+        max_coverage_range = get_max_coverage_range(
+            state_motion_data_range,
+            action_motion_data_range,
+            video_data_range
+        )
+        max_start, max_end = max_coverage_range
+        
         episode_summary[episode_idx].update(
             {
                 "is_bad": 1,
+                "is_diff": is_diff,
+                # 原有分组汇总得分
                 "state_data_score": state_data_scores.get(episode_idx, 0),
                 "action_data_score": action_data_scores.get(episode_idx, 0),
                 "video_score": video_scores.get(episode_idx, 1),
+                # Episode Data 算子单独得分
+                "episode_state_static_frame_rate_score": state_static_frame_rate_score,
+                "episode_state_static_joint_score": state_static_joint_score,
+                "episode_action_static_frame_rate_score": action_static_frame_rate_score,
+                "episode_action_static_joint_score": action_static_joint_score,
+                # Episode Video 算子单独得分
+                "episode_video_max_frame_stable_then_jump_rate_score": max_frame_stable_then_jump_rate_score,
+                "episode_video_max_frame_jump_dist_score": max_frame_jump_dist_score,
+                "episode_video_color_shift_detection_score": color_shift_detection_score,
+                "episode_video_consecutive_static_frames_score": consecutive_static_frames_score,
+                "episode_video_camera_resolution_consistency_score": camera_resolution_score,
+                "max_start":max_start,
+                "max_end":max_end,
             }
         )
+    # 处理正常episode
     for episode_idx in (
         set(state_data_scores.keys()) | set(action_data_scores.keys()) | set(video_scores.keys())
     ):
+        # 提取episode_data算子单独得分
+        state_static_frame_rate_score = state_data_scores_perchecker.get(episode_idx, {}).get("static_frame_rate", 0.0)
+        state_static_joint_score = state_data_scores_perchecker.get(episode_idx, {}).get("static_joint", 0.0)
+
+        action_static_frame_rate_score = action_data_scores_perchecker.get(episode_idx, {}).get("static_frame_rate", 0.0)
+        action_static_joint_score = action_data_scores_perchecker.get(episode_idx, {}).get("static_joint", 0.0)
+        
+        # 提取episode_video算子单独得分
+        max_frame_stable_then_jump_rate_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_stable_then_jump_rate", 0.0)
+        max_frame_jump_dist_score = video_scores_perchecker.get(episode_idx, {}).get("max_frame_jump_dist", 0.0)
+        color_shift_detection_score = video_scores_perchecker.get(episode_idx, {}).get("video_color_shift_detection", 0.0)
+        consecutive_static_frames_score = video_scores_perchecker.get(episode_idx, {}).get("consecutive_static_frames", 0.0)
+        camera_resolution_score = video_scores_perchecker.get(episode_idx, {}).get("camera_resolution_consistency", 0.0)
+        static_frame_diff = abs(state_static_frame_rate_score - action_static_frame_rate_score)
+        is_diff = 1 if static_frame_diff > 0.1 else 0
+
+        state_motion_data_range = state_data_scores_perchecker.get(episode_idx, {}).get("motion_data_valid_frame_range", (0, 0))
+        action_motion_data_range = action_data_scores_perchecker.get(episode_idx, {}).get("motion_data_valid_frame_range", (0, 0))
+        video_data_range = video_scores_perchecker.get(episode_idx, {}).get("video_valid_frame_range", (0, 0))
+        max_coverage_range = get_max_coverage_range(
+            state_motion_data_range,
+            action_motion_data_range,
+            video_data_range
+        )
+        max_start, max_end = max_coverage_range
+        
         episode_summary[episode_idx].update(
             {
                 "is_bad": episode_idx in bad_set,
+                "is_diff": is_diff,
+                # 原有分组汇总得分
                 "state_data_score": state_data_scores.get(episode_idx, 1),
                 "action_data_score": action_data_scores.get(episode_idx, 1),
                 "video_score": video_scores.get(episode_idx, 1),
+                # Episode Data 算子单独得分
+                "episode_state_static_frame_rate_score": state_static_frame_rate_score,
+                "episode_state_static_joint_score": state_static_joint_score,
+                "episode_action_static_frame_rate_score": action_static_frame_rate_score,
+                "episode_action_static_joint_score": action_static_joint_score,
+                # Episode Video 算子单独得分
+                "episode_video_max_frame_stable_then_jump_rate_score": max_frame_stable_then_jump_rate_score,
+                "episode_video_max_frame_jump_dist_score": max_frame_jump_dist_score,
+                "episode_video_color_shift_detection_score": color_shift_detection_score,
+                "episode_video_consecutive_static_frames_score": consecutive_static_frames_score,
+                "episode_video_camera_resolution_consistency_score": camera_resolution_score,
+                "max_start":max_start,
+                "max_end":max_end,
             }
         )
     return episode_summary
@@ -372,20 +529,29 @@ def _gen_one_dataset_quality_check_task_without_sync(
 
 
 def _check_repo(repo_path: str | Path, checker_config: dict, data_feature: str) -> dict[int, dict]:
-    qc_results, _ = quality_check_pipeline(repo_path, checker_config, data_feature=data_feature)
+    # 注意：这里要保留第二个返回值（包含所有算子单独得分）
+    qc_results, qc_detailed_results = quality_check_pipeline(repo_path, checker_config, data_feature=data_feature)
     bad_episodes, state_data_scores, action_data_scores, video_scores = (
         qc_results.get("bad_data_episodes", []),
         qc_results.get("state_data_scores", {}),
         qc_results.get("action_data_scores", {}),
         qc_results.get("video_scores", {}),
     )
+    # 提取算子单独得分
+    state_data_scores_perchecker = qc_detailed_results.get("state_data_scores_perchecker", {})
+    action_data_scores_perchecker = qc_detailed_results.get("action_data_scores_perchecker", {})
+    video_scores_perchecker = qc_detailed_results.get("video_scores_perchecker", {})
 
     return _build_episode_qc_summary(
         bad_episodes,
         state_data_scores=state_data_scores,
         action_data_scores=action_data_scores,
         video_scores=video_scores,
+        state_data_scores_perchecker=state_data_scores_perchecker,  # 传递episode_data算子单独得分
+        action_data_scores_perchecker=action_data_scores_perchecker,  # 传递episode_data算子单独得分
+        video_scores_perchecker=video_scores_perchecker,            # 传递episode_video算子单独得分
     )
+
 
 
 class DatasetQualityCheck:
@@ -420,9 +586,7 @@ class DatasetQualityCheck:
             qc_results = _check_repo(repo_path, checker_config, MERGED_DATA_FEATURE)
 
             with self.db.with_session() as session:
-                item = (
-                    session.query(DatasetDB).filter(DatasetDB.dataset_uuid == dataset_uuid).first()
-                )
+                item = session.query(DatasetDB).filter(DatasetDB.dataset_uuid == dataset_uuid).first()
                 if item:
                     item.qc_status = TaskStatus.COMPLETED
                 else:
@@ -433,17 +597,29 @@ class DatasetQualityCheck:
                         dataset_uuid=dataset_uuid,
                         episode_idx=episode_idx,
                         is_bad_episode=summary["is_bad"],
+                        is_state_frame_diff=summary["is_diff"],
+                        # 原有分组汇总得分
                         state_data_score=summary["state_data_score"],
                         action_data_score=summary["action_data_score"],
                         video_score=summary["video_score"],
+                        # Episode Data 算子单独得分
+                        episode_state_static_frame_rate_score=summary["episode_state_static_frame_rate_score"],
+                        episode_state_static_joint_score=summary["episode_state_static_joint_score"],
+                        episode_action_static_frame_rate_score=summary["episode_action_static_frame_rate_score"],
+                        episode_action_static_joint_score=summary["episode_action_static_joint_score"],
+                        # Episode Video 算子单独得分
+                        episode_video_max_frame_stable_then_jump_rate_score=summary["episode_video_max_frame_stable_then_jump_rate_score"],
+                        episode_video_max_frame_jump_dist_score=summary["episode_video_max_frame_jump_dist_score"],
+                        episode_video_color_shift_detection_score=summary["episode_video_color_shift_detection_score"],
+                        start_frame = summary.get("max_start", 0),
+                        end_frame =  summary.get("max_end", 0),
                     )
                     session.add(episode_qc_item)
                 session.commit()
+        # 异常处理逻辑不变
         except Exception:
             with self.db.with_session() as session:
-                item = (
-                    session.query(DatasetDB).filter(DatasetDB.dataset_uuid == dataset_uuid).first()
-                )
+                item = session.query(DatasetDB).filter(DatasetDB.dataset_uuid == dataset_uuid).first()
                 if item:
                     item.qc_status = TaskStatus.FAILED
                     item.qc_err_msg = traceback.format_exc()
@@ -548,15 +724,10 @@ class DatasetQualityCheckServer(TaskServer):
             return
 
         try:
-            # 提取任务结果字段，增加默认值避免报错
             task_status = task_result_content.get(TASK_RESULT_STATUS)
             err_msg = task_result_content.get(ERR_MSG, "")
             task_content_dict = task_result_content.get(TASK_RESULT_CONTENT, {})
             qc_results = task_content_dict.get(QC_RESULT, {})
-
-            # # 新增：打印日志，验证qc_results是否为空
-            # self.logger.info(f"qc_results content: {qc_results}")
-            self.logger.info(f"qc_results length: {len(qc_results)}")
 
             with self.db.with_session() as session:
                 item = session.query(DatasetDB).filter(DatasetDB.dataset_uuid == ds_uuid).first()
@@ -565,14 +736,10 @@ class DatasetQualityCheckServer(TaskServer):
                     return
 
                 if task_status == TASK_SUCCESS:
-                    # 更新数据集QC状态为完成
                     item.qc_status = TaskStatus.COMPLETED
-                    item.qc_err_msg = ""  # 清空历史错误信息
-
-                    # 删除该数据集原有QC记录，插入新记录
+                    item.qc_err_msg = ""
                     session.query(EpisodeQcDB).filter(EpisodeQcDB.dataset_uuid == ds_uuid).delete()
 
-                    # 遍历QC结果，增加容错处理
                     for episode_idx_str, summary in qc_results.items():
                         try:
                             episode_idx = int(episode_idx_str)
@@ -580,36 +747,61 @@ class DatasetQualityCheckServer(TaskServer):
                             self.logger.warning(f"Skip invalid episode index: {episode_idx_str}")
                             continue
 
-                        # 提取summary字段，增加默认值避免KeyError
+                        # 提取所有字段（汇总+单独算子）
                         is_bad = summary.get("is_bad", False)
+                        is_diff = summary.get("is_diff", False)
                         state_score = summary.get("state_data_score", 0.0)
                         action_score = summary.get("action_data_score", 0.0)
                         video_score = summary.get("video_score", 0.0)
-
+                        # Episode Data 算子单独得分
+                        state_static_frame_rate_score = summary.get("episode_state_static_frame_rate_score", 0.0)
+                        state_static_joint_score = summary.get("episode_state_static_joint_score", 0.0)
+                        action_static_frame_rate_score = summary.get("episode_action_static_frame_rate_score", 0.0)
+                        action_static_joint_score = summary.get("episode_action_static_joint_score", 0.0)
+                        # Episode Video 算子单独得分
+                        max_frame_stable_then_jump_rate_score = summary.get("episode_video_max_frame_stable_then_jump_rate_score", 0.0)
+                        max_frame_jump_dist_score = summary.get("episode_video_max_frame_jump_dist_score", 0.0)
+                        episode_video_color_shift_detection_score = summary.get("episode_video_color_shift_detection_score", 0.0)
+                        consecutive_static_frames_score = summary.get("episode_video_consecutive_static_frames_score", 0.0)
+                        camera_resolution_consistency_score = summary.get("episode_video_camera_resolution_consistency_score", 0.0)
+                        max_start = summary.get("max_start", 0)
+                        max_end =  summary.get("max_end", 0)
 
                         episode_qc_item = EpisodeQcDB(
                             dataset_uuid=ds_uuid,
                             episode_idx=episode_idx,
                             is_bad_episode=is_bad,
+                            is_state_frame_diff=is_diff,
+                            # 原有分组汇总得分
                             state_data_score=state_score,
                             action_data_score=action_score,
                             video_score=video_score,
+                            # Episode Data 算子单独得分
+                            episode_state_static_frame_rate_score=state_static_frame_rate_score,
+                            episode_state_static_joint_score=state_static_joint_score,
+                            episode_action_static_frame_rate_score=action_static_frame_rate_score,
+                            episode_action_static_joint_score=action_static_joint_score,
+                            # Episode Video 算子单独得分
+                            episode_video_max_frame_stable_then_jump_rate_score=max_frame_stable_then_jump_rate_score,
+                            episode_video_max_frame_jump_dist_score=max_frame_jump_dist_score,
+                            episode_video_color_shift_detection_score=episode_video_color_shift_detection_score,
+                            episode_video_consecutive_static_frames_score=consecutive_static_frames_score,
+                            episode_video_camera_resolution_consistency_score=camera_resolution_consistency_score,
+                            start_frame = max_start,
+                            end_frame = max_end,
                         )
                         session.add(episode_qc_item)
 
                     self.logger.info(f"Dataset {ds_uuid} quality check completed successfully.")
                 else:
-                    # 更新数据集QC状态为失败，记录错误信息
                     item.qc_status = TaskStatus.FAILED
-                    item.qc_err_msg = err_msg[:1000]  # 截断过长信息，避免数据库字段溢出
+                    item.qc_err_msg = err_msg[:1000]
                     self.logger.error(f"Dataset {ds_uuid} quality check failed: {err_msg}")
 
-                # 提交事务
                 session.commit()
 
         except Exception as e:
             self.logger.error(f"Handle task result for {ds_uuid} failed with exception: {str(e)}\n{traceback.format_exc()}")
-
 
 
 class DatasetQualityCheckClient(TaskClient):
@@ -646,7 +838,7 @@ class DatasetQualityCheckClient(TaskClient):
 
             # 新增：打印关键日志，确认results是否为空（核心验证）
             print(f"[Client] _check_repo返回结果长度: {len(results)}")
-            print(f"[Client] _check_repo返回结果前5条: {list(results.items())[:5] if results else '空'}")
+            print(f"[Client] _check_repo返回结果前1条: {list(results.items())[:1] if results else '空'}")
 
             # 转换为字符串键（避免服务端解析问题），并转为纯原生字典（避免defaultdict序列化问题）
             results_send = {str(episode_idx): dict(v) for episode_idx, v in results.items()}
