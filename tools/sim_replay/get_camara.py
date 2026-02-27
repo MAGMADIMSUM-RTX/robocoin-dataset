@@ -53,17 +53,16 @@ def tune_camera(config_path, robot_version):
                 cam = viewer.cam
 
                 print("\n>>> [当前相机参数]:")
-                print(
-                    f"self.camera.lookat = np.array([{cam.lookat[0]:.3f}, {cam.lookat[1]:.3f}, {cam.lookat[2]:.3f}])"
-                )
-                print(f"self.camera.distance = {cam.distance:.3f}")
-                print(f"self.camera.azimuth = {cam.azimuth:.3f}")
-                print(f"self.camera.elevation = {cam.elevation:.3f}")
+                print(f"    lookat_x: {cam.lookat[0]:.3f}")
+                print(f"    lookat_z: {cam.lookat[2]:.3f}")
+                print(f"    lookat_y: {cam.lookat[1]:.3f}")
+                print(f"    distance: {cam.distance:.3f}")
+                print(f"    azimuth: {cam.azimuth:.3f}")
+                print(f"    elevation: {cam.elevation:.3f}")
 
                 last_print = now
 
             time.sleep(0.03)
-
 
 if __name__ == "__main__":
     # 使用示例：直接在这里填入你的配置路径

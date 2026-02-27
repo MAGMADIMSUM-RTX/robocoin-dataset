@@ -7,20 +7,12 @@ class CustomFix:
         self.gripper_open_min = 0.0
 
     def get_mjcf_gripper_joint_data(self, lerobot_gripper_data: dict) -> dict:
-        left_gripper_data = lerobot_gripper_data["left_gripper_open"]
-        right_gripper_data = lerobot_gripper_data["right_gripper_open"]
+        left_gripper_data = lerobot_gripper_data.get("left_gripper_open", 0.0)
+        right_gripper_data = lerobot_gripper_data.get("right_gripper_open", 0.0)
 
-        lglf_joint_data = (
-            (self.gripper_joint_max - self.gripper_joint_min)
-            * (left_gripper_data - self.gripper_open_min)
-            / (self.gripper_open_max - self.gripper_open_min)
-        )
+        lglf_joint_data = left_gripper_data
         lgrf_joint_data = -lglf_joint_data
-        rglf_joint_data = (
-            (self.gripper_joint_max - self.gripper_joint_min)
-            * (right_gripper_data - self.gripper_open_min)
-            / (self.gripper_open_max - self.gripper_open_min)
-        )
+        rglf_joint_data = right_gripper_data
         rgrf_joint_data = -rglf_joint_data
 
         return {

@@ -1,0 +1,53 @@
+default_version:
+  sim:
+    xml_path: "configs/sim_replay/mjcfs/A2D/G1_roh_roh_with_sites.xml"  # 仿真模型路径
+
+    # module_file: config.sim_replay.agilex
+    # function: get_mjcf_gripper_joint_data
+
+    joints:
+      idx21_arm_l_joint1: left_arm_joint_1_rad
+      idx22_arm_l_joint2: left_arm_joint_2_rad
+      idx23_arm_l_joint3: left_arm_joint_3_rad
+      idx24_arm_l_joint4: left_arm_joint_4_rad
+      idx25_arm_l_joint5: left_arm_joint_5_rad
+      idx26_arm_l_joint6: left_arm_joint_6_rad
+      idx27_arm_l_joint7: left_arm_joint_7_rad
+      idx61_arm_r_joint1: right_arm_joint_1_rad
+      idx62_arm_r_joint2: right_arm_joint_2_rad
+      idx63_arm_r_joint3: right_arm_joint_3_rad
+      idx64_arm_r_joint4: right_arm_joint_4_rad
+      idx65_arm_r_joint5: right_arm_joint_5_rad
+      idx66_arm_r_joint6: right_arm_joint_6_rad
+      idx67_arm_r_joint7: right_arm_joint_7_rad
+      # fl_joint7: fl_joint7
+      # fl_joint8: fl_joint8
+      # fr_joint7: fr_joint7
+      # fr_joint8: fr_joint8
+                                            
+    # 物理世界的限制 (MuJoCo 中的实际行程, 单位: 米或弧度)
+    gripper_config:
+      gripper_name:
+        - left_gripper_open
+        - right_gripper_open
+      # gripper_joint_max: 0.04  # 物理完全张开的宽度
+      # gripper_joint_min: 0.0   # 物理完全闭合的宽度
+      gripper: False
+
+    camera:   # 相机参数可以从 tools/sim_replay/get_camara.py 中获取
+      lookat_x: 0.487  
+      lookat_y: -0.000
+      lookat_z: 0.824
+      distance: 2.000
+      azimuth: -0.250
+      elevation: -81.250
+
+  default_version:
+    gripper_config:
+      gripper_value_open: 1.02  # 数据中表示"开"的值
+      gripper_value_close: 0.0 # 数据中表示"关"的值
+
+
+  show_plt: 
+  - left_gripper_open
+  - right_gripper_open

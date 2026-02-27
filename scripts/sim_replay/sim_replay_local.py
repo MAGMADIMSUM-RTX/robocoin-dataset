@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 '''
 python scripts/sim_replay/sim_replay_local.py \
-  --repo_path /home/user/process_symmetry/realman_rmc_aidal_basket_storage_orange_hardlink \
-  --config_module robocoin_dataset.sim_replay.configs.realman_rmc_aidal_config \
-  --config_class RealmanRmcAidalLerobotSimReplayConfig \
-  --replay_source data
+  --repo_path /mnt/nas/synnas/成功区/Airbot_MMK2_Airbot_MMK2_storage_potato_right \
+  --config_module robocoin_dataset.sim_replay.configs.mmk2_config \
+  --config_class Mmk2LerobotSimReplayConfig \
+  --replay_source sa_dpp
+
+python scripts/sim_replay/sim_replay_local.py \
+  --repo_path /mnt/nas/synnas/docker2/robocoin-datasets/Cobot_Magic_move_beverage \
+  --config_module robocoin_dataset.sim_replay.configs.agilex_cobot_magic_config \
+  --config_class AgilexCobotMagicLerobotSimReplayConfig \
+  --replay_source sa_dpp
+  --episode_idx 94
 '''
+
 import argparse
 from pathlib import Path
 from importlib import import_module

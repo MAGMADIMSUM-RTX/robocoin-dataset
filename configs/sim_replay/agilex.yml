@@ -1,3 +1,4 @@
+
 sim:
   xml_path: "configs/sim_replay/mjcfs/agilex_cobot_magic/aloha_new/aloha_new_v00_with_sites.xml"  # 仿真模型路径
 
@@ -25,22 +26,65 @@ sim:
   # 物理世界的限制 (MuJoCo 中的实际行程, 单位: 米或弧度)
   gripper_config:
     gripper_name:
-      - left_gripper_open
       - right_gripper_open
+      - left_gripper_open
     gripper_joint_max: 0.04  # 物理完全张开的宽度
     gripper_joint_min: 0.0   # 物理完全闭合的宽度
     gripper: True
 
   camera:   # 相机参数可以从 tools/sim_replay/get_camara.py 中获取
-    lookat_x: 0.104
-    lookat_y: 0.042
-    lookat_z: 1.171
-    distance: 2.168
-    azimuth: -1.250
-    elevation: -56.625
+    lookat_x: 0.487  
+    lookat_y: -0.000
+    lookat_z: 0.824
+    distance: 2.000
+    azimuth: -0.250
+    elevation: -81.250
 
 default_version:
   gripper_config:
-    gripper_value_open: 8.0  # 数据中表示"开"的值
+    gripper_value_open: 1.0  # 数据中表示"开"的值
     gripper_value_close: 0.0 # 数据中表示"关"的值
 
+mcap_version:
+  gripper_config:
+    gripper_value_open: 0.8  # 数据中表示"开"的值
+    gripper_value_close: 0.0 # 数据中表示"关"的值
+
+realsense_version:
+  gripper_config:
+    gripper_value_open: 0.8
+    gripper_value_close: 0.0
+
+depthhead_version:
+  gripper_config:
+    gripper_value_open: 0.8
+    gripper_value_close: 0.0
+
+headdown_version:
+  gripper_config:
+    gripper_value_open: 0.8
+    gripper_value_close: 0.0
+
+masterpuppet_version:
+  gripper_config:
+    gripper_value_open: 0.8
+    gripper_value_close: 0.0
+
+h5_mp4:
+  gripper_config:
+    gripper_value_open: 0.8
+    gripper_value_close: -0.02
+
+h5_mp4_new:
+  gripper_config:
+    gripper_value_open: 0.8
+    gripper_value_close: 0.0
+
+mult_sensor:
+  gripper_config:
+    gripper_value_open: 0.8
+    gripper_value_close: 0.0
+
+show_plt: 
+- right_gripper_open
+- left_gripper_open

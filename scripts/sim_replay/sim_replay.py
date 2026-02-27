@@ -1,9 +1,23 @@
 import argparse
 import logging
+import sys
 from pathlib import Path
+
+# Add project root and src to sys.path
+current_file = Path(__file__).resolve()
+project_root = current_file.parents[2] # scripts/sim_replay -> scripts -> root
+src_path = project_root / "src"
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
 
 from robocoin_dataset.sim_replay.sim_replay import SimReplay
 from robocoin_dataset.utils.logger import setup_logger
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -70,10 +84,10 @@ if __name__ == "__main__":
 """usage:
 # realman_rmc_aidal
 python scripts/sim_replay/sim_replay.py \
-    --db_file_path /mnt/db/datasets_new.db \
+    --db_file_path db/postgresql_config.yaml \
     --sim_replay_config_path ./scripts/sim_replay/configs/sim_replay_config_path.yaml \
-    --device_model realman_rmc_aidal \
-    --device_model_version mcap_version \
+    --device_model agilex_cobot_decoupled_magic \
+    --device_model_version default_version \
     --log_dir ./logs/sim_replay
 """
 # galaxea

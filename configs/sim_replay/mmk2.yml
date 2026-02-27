@@ -1,0 +1,93 @@
+
+sim:
+  xml_path: "configs/sim_replay/mjcfs/mmk2/mmk2_with_sites.xml"  # 仿真模型路径
+
+  # module_file: config.sim_replay.galaxea
+  # function: get_mjcf_gripper_joint_data
+
+  joints:
+    lftarm_joint1: left_arm_joint_1_rad
+    lftarm_joint2: left_arm_joint_2_rad
+    lftarm_joint3: left_arm_joint_3_rad
+    lftarm_joint4: left_arm_joint_4_rad
+    lftarm_joint5: left_arm_joint_5_rad
+    lftarm_joint6: left_arm_joint_6_rad
+    rgtarm_joint1: right_arm_joint_1_rad
+    rgtarm_joint2: right_arm_joint_2_rad
+    rgtarm_joint3: right_arm_joint_3_rad
+    rgtarm_joint4: right_arm_joint_4_rad
+    rgtarm_joint5: right_arm_joint_5_rad
+    rgtarm_joint6: right_arm_joint_6_rad
+    # left_gripper_finger_joint1: fl_joint7
+    # left_gripper_finger_joint2: fl_joint8
+    # right_gripper_finger_joint1: fr_joint7
+    # right_gripper_finger_joint2: fr_joint8
+                                          
+  # 物理世界的限制 (MuJoCo 中的实际行程, 单位: 米或弧度)
+  gripper_config:
+    gripper_name:
+      # - left_hand_joint_1_rad
+      # - right_hand_joint_1_rad
+      # - left_hand_joint_2_rad
+      # - right_hand_joint_2_rad
+      # - left_hand_joint_3_rad
+      # - right_hand_joint_3_rad
+      # - left_hand_joint_4_rad
+      # - right_hand_joint_4_rad
+      # - left_hand_joint_5_rad
+      # - right_hand_joint_5_rad
+      # - left_hand_joint_6_rad
+      # - right_hand_joint_6_rad
+    # gripper_joint_max: 0.05  # 物理完全张开的宽度
+    # gripper_joint_min: 0.0   # 物理完全闭合的宽度
+    gripper: False
+
+  camera:   # 相机参数可以从 tools/sim_replay/get_camara.py 中获取
+    lookat_x: 0.487  
+    lookat_y: -0.000
+    lookat_z: 0.824
+    distance: 2.000
+    azimuth: -0.250
+    elevation: -81.250
+
+default_version:
+  gripper_config:
+    gripper_value_open: 1.0  # 数据中表示"开"的值
+    gripper_value_close: 0.0 # 数据中表示"关"的值
+
+third_view:
+  gripper_config:
+    gripper_value_open: 1.0  # 数据中表示"开"的值
+    gripper_value_close: 0.0 # 数据中表示"关"的值
+
+5d_arms:
+  gripper_config:
+    gripper_value_open: 1.0  # 数据中表示"开"的值
+    gripper_value_close: 0.0 # 数据中表示"关"的值
+
+
+show_plt: 
+- left_hand_joint_1_rad
+- left_hand_joint_2_rad
+- left_hand_joint_3_rad
+- left_hand_joint_4_rad
+- left_hand_joint_5_rad
+- left_hand_joint_6_rad
+- left_hand_joint_7_rad
+- left_hand_joint_8_rad
+- left_hand_joint_9_rad
+- left_hand_joint_10_rad
+- left_hand_joint_11_rad
+- left_hand_joint_12_rad
+- right_hand_joint_1_rad
+- right_hand_joint_2_rad
+- right_hand_joint_3_rad
+- right_hand_joint_4_rad
+- right_hand_joint_5_rad
+- right_hand_joint_6_rad
+- right_hand_joint_7_rad
+- right_hand_joint_8_rad
+- right_hand_joint_9_rad
+- right_hand_joint_10_rad
+- right_hand_joint_11_rad
+- right_hand_joint_12_rad

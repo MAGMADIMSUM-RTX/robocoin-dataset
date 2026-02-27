@@ -1,28 +1,27 @@
+
 sim:
   xml_path: "configs/sim_replay/mjcfs/realman_rmc_aidal/overseas_75_b_v_description_rmg24_with_sites.xml"  # 仿真模型路径
 
-  module_file: config.sim_replay.realman
-  function: get_mjcf_gripper_joint_data
+  # module_file: config.sim_replay.galaxea
+  # function: get_mjcf_gripper_joint_data
 
   joints:
     l_joint1: left_arm_joint_1_rad
-    l_joint2: left_arm_joint_2_rad
-    l_joint3: left_arm_joint_3_rad
-    l_joint4: left_arm_joint_4_rad
-    l_joint5: left_arm_joint_5_rad
-    l_joint6: left_arm_joint_6_rad
-    l_joint7: left_arm_joint_7_rad
+    l_joint2: left_arm_joint_3_rad
+    l_joint3: left_arm_joint_4_rad
+    l_joint4: left_arm_joint_5_rad
+    l_joint5: left_arm_joint_6_rad
+    l_joint6: left_arm_joint_7_rad
     r_joint1: right_arm_joint_1_rad
     r_joint2: right_arm_joint_2_rad
     r_joint3: right_arm_joint_3_rad
     r_joint4: right_arm_joint_4_rad
     r_joint5: right_arm_joint_5_rad
     r_joint6: right_arm_joint_6_rad
-    r_joint7: right_arm_joint_7_rad
-    l_Joint_finger1: fl_joint7
-    l_Joint_finger2: fl_joint8
-    r_Joint_finger1: fr_joint7
-    r_Joint_finger2: fr_joint8
+    # l_Joint_finger1: fl_joint7
+    # l_Joint_finger2: fl_joint8
+    # r_Joint_finger1: fr_joint7
+    # r_Joint_finger2: fr_joint8
                                           
   # 物理世界的限制 (MuJoCo 中的实际行程, 单位: 米或弧度)
   gripper_config:
@@ -34,15 +33,19 @@ sim:
     gripper: True
 
   camera:   # 相机参数可以从 tools/sim_replay/get_camara.py 中获取
-    lookat_x: 0.104
-    lookat_y: 0.042
-    lookat_z: 1.171
-    distance: 2.168
-    azimuth: -1.250
-    elevation: -56.625
+    lookat_x: 0.487  
+    lookat_y: -0.000
+    lookat_z: 0.824
+    distance: 2.000
+    azimuth: -0.250
+    elevation: -81.250
 
 default_version:
   gripper_config:
     gripper_value_open: 1000.0  # 数据中表示"开"的值
     gripper_value_close: 0.0 # 数据中表示"关"的值
 
+
+show_plt: 
+- left_gripper_open
+- right_gripper_open

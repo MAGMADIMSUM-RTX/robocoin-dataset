@@ -1,0 +1,73 @@
+
+sim:
+  xml_path: "configs/sim_replay/mjcfs/leju/biped_s49_with_sites.xml"  # 仿真模型路径
+
+  # module_file: config.sim_replay.galaxea
+  # function: get_mjcf_gripper_joint_data
+
+  joints:
+    zarm_l1_joint: left_arm_joint_1_rad
+    zarm_l2_joint: left_arm_joint_2_rad
+    zarm_l3_joint: left_arm_joint_3_rad
+    zarm_l4_joint: left_arm_joint_4_rad
+    zarm_l5_joint: left_arm_joint_5_rad
+    zarm_l6_joint: left_arm_joint_6_rad
+    zarm_l7_joint: left_arm_joint_7_rad
+    zarm_r1_joint: right_arm_joint_1_rad
+    zarm_r2_joint: right_arm_joint_2_rad
+    zarm_r3_joint: right_arm_joint_3_rad
+    zarm_r4_joint: right_arm_joint_4_rad
+    zarm_r5_joint: right_arm_joint_5_rad
+    zarm_r6_joint: right_arm_joint_6_rad
+    zarm_r7_joint: right_arm_joint_7_rad
+    # left_gripper_finger_joint1: fl_joint7
+    # left_gripper_finger_joint2: fl_joint8
+    # right_gripper_finger_joint1: fr_joint7
+    # right_gripper_finger_joint2: fr_joint8
+                                          
+  # 物理世界的限制 (MuJoCo 中的实际行程, 单位: 米或弧度)
+  gripper_config:
+    # gripper_name:
+    #   - left_hand_joint_1_rad
+    #   - right_hand_joint_1_rad
+    #   - left_hand_joint_2_rad
+    #   - right_hand_joint_2_rad
+    #   - left_hand_joint_3_rad
+    #   - right_hand_joint_3_rad
+    #   - left_hand_joint_4_rad
+    #   - right_hand_joint_4_rad
+    #   - left_hand_joint_5_rad
+    #   - right_hand_joint_5_rad
+    #   - left_hand_joint_6_rad
+    #   - right_hand_joint_6_rad
+    # gripper_joint_max: 0.05  # 物理完全张开的宽度
+    # gripper_joint_min: 0.0   # 物理完全闭合的宽度
+    gripper: False
+
+  camera:   # 相机参数可以从 tools/sim_replay/get_camara.py 中获取
+    lookat_x: 0.487  
+    lookat_y: -0.000
+    lookat_z: 0.824
+    distance: 2.000
+    azimuth: -0.250
+    elevation: -81.250
+
+default_version:
+  gripper_config:
+    gripper_value_open: 1.0  # 数据中表示"开"的值
+    gripper_value_close: 0.0 # 数据中表示"关"的值
+
+
+show_plt: 
+- left_hand_joint_1_rad
+- right_hand_joint_1_rad
+- left_hand_joint_2_rad
+- right_hand_joint_2_rad
+- left_hand_joint_3_rad
+- right_hand_joint_3_rad
+- left_hand_joint_4_rad
+- right_hand_joint_4_rad
+- left_hand_joint_5_rad
+- right_hand_joint_5_rad
+- left_hand_joint_6_rad
+- right_hand_joint_6_rad
