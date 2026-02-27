@@ -1,0 +1,44 @@
+
+sim:
+  xml_path: "configs/sim_replay/mjcfs/tianqing/o2_with_sites.xml"  # 仿真模型路径
+
+  joints:
+    4: left_arm_joint_1_rad
+    5: left_arm_joint_2_rad
+    6: left_arm_joint_3_rad
+    7: left_arm_joint_4_rad
+    8: left_arm_joint_5_rad
+    9: left_arm_joint_6_rad
+    10: left_arm_joint_7_rad
+    11: right_arm_joint_1_rad
+    12: right_arm_joint_2_rad
+    13: right_arm_joint_3_rad
+    14: right_arm_joint_4_rad
+    15: right_arm_joint_5_rad
+    16: right_arm_joint_6_rad
+    17: right_arm_joint_7_rad
+    # fl_joint7: fl_joint7
+    
+                                          
+  # 物理世界的限制 (MuJoCo 中的实际行程, 单位: 米或弧度)
+  gripper_config:
+    gripper_name:
+      - left_gripper_open
+      - right_gripper_open
+    gripper_joint_max: 0.04  # 物理完全张开的宽度
+    gripper_joint_min: 0.0   # 物理完全闭合的宽度
+    gripper: True
+
+  camera:   # 相机参数可以从 tools/sim_replay/get_camara.py 中获取
+    lookat_x: 0.487  
+    lookat_y: -0.000
+    lookat_z: 0.824
+    distance: 2.000
+    azimuth: -0.250
+    elevation: -81.250
+
+default_version:
+  gripper_config:
+    gripper_value_open: 0.8  # 数据中表示"开"的值
+    gripper_value_close: 0.0 # 数据中表示"关"的值
+

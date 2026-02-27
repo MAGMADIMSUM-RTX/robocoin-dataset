@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# Add project root to sys.path to allow running this script directly
+project_root = Path(__file__).resolve().parents[3]  # src/robocoin_dataset/database/database.py -> src/robocoin_dataset/database -> src/robocoin_dataset -> src -> root
+if str(project_root / "src") not in sys.path:
+    sys.path.insert(0, str(project_root / "src"))
+
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
@@ -112,7 +120,7 @@ class DatasetDatabase:
 if __name__ == "__main__":
     # 方式1：使用默认配置文件（postgresql_config.yaml）
     try:
-        db = DatasetDatabase("/home/liuyou/Documents/robocoin-dataset/db/postgresql_config.yaml")
+        db = DatasetDatabase("db/postgresql_config.yaml")
         print("数据库实例创建成功！")
         
     

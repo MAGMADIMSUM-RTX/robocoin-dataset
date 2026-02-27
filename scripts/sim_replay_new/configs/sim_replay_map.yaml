@@ -1,0 +1,13 @@
+# Mapping file for sim_replay_new
+# Format:
+# device_model: config_filename_without_extension
+
+Agilex_Cobot_Magic: agilex
+Realman_RMC-AIDA-L: realman
+ruantong_a2d: ruantong
+a2d: a2d
+alpha_bot_2: alpha_bot_2
+Unitree_G1edu-u3: unitree
+Galaxea_R1_Lite: galaxea
+Galbot_G1: galbot
+Airbot_MMK2: mmk2

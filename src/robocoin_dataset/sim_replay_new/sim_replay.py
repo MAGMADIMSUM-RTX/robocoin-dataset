@@ -2,10 +2,19 @@ import argparse
 import os
 import sys
 import time
+import traceback
 from pathlib import Path
 import cv2
+import numpy as np
 import rerun as rr
 import rerun.blueprint as rrb
+
+# Try importing av for robust AV1 decoding
+try:
+    import av
+    HAS_AV = True
+except ImportError:
+    HAS_AV = False
 
 # 将项目根目录加入路径，确保直接运行时导入正常
 current_file = Path(__file__).resolve()
@@ -15,7 +24,84 @@ if str(project_root) not in sys.path:
 
 from src.robocoin_dataset.sim_replay_new.SimReplayer import LerobotSimReplayer
 
-def run_replay(repo_path, config_name, data_source="data", data_type="all", episode_idx=0):
+def get_error_frame(width=640, height=480, text="Error"):
+    """Generate a black frame with error text"""
+    img = np.zeros((height, width, 3), dtype=np.uint8)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 1
+    thickness = 2
+    color = (255, 255, 255) # White
+    
+    text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
+    text_x = (width - text_size[0]) // 2
+    text_y = (height + text_size[1]) // 2
+    
+    cv2.putText(img, text, (text_x, text_y), font, font_scale, color, thickness)
+    return img
+
+class VideoReader:
+    """Wrapper to handle video reading with fallback (AV -> CV2 -> Error Frame)"""
+    def __init__(self, video_path):
+        self.video_path = str(video_path)
+        self.use_av = HAS_AV
+        self.cap = None
+        self.container = None
+        self.stream = None
+        self.frame_iter = None
+        self.width = 640
+        self.height = 480
+        
+        if self.use_av:
+            try:
+                self.container = av.open(self.video_path)
+                self.stream = self.container.streams.video[0]
+                self.stream.thread_type = "AUTO" # Enable multi-threading
+                self.frame_iter = self.container.decode(self.stream)
+                # Get dimensions
+                self.width = self.stream.width
+                self.height = self.stream.height
+            except Exception as e:
+                print(f"PyAV failed to open {self.video_path}: {e}\n{traceback.format_exc()}. Falling back to OpenCV.")
+                self.use_av = False
+        
+        if not self.use_av:
+            self.cap = cv2.VideoCapture(self.video_path)
+            if self.cap.isOpened():
+                self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    
+    def read(self):
+        try:
+            if self.use_av:
+                try:
+                    frame = next(self.frame_iter)
+                    # Convert to numpy array (RGB)
+                    img = frame.to_ndarray(format="rgb24")
+                    return True, img
+                except StopIteration:
+                    return False, None
+                except Exception as e:
+                    print(f"PyAV decoding error: {e}\n{traceback.format_exc()}")
+                    return False, None
+            else:
+                if self.cap and self.cap.isOpened():
+                    ret, frame = self.cap.read()
+                    if ret and frame is not None and frame.size > 0:
+                        # OpenCV returns BGR, convert to RGB
+                        return True, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    return False, None
+                return False, None
+        except Exception as e:
+            print(f"Error reading frame: {e}\n{traceback.format_exc()}")
+            return False, None
+
+    def release(self):
+        if self.use_av and self.container:
+            self.container.close()
+        if self.cap:
+            self.cap.release()
+
+def run_replay(repo_path, config_name, data_source="data", data_type="all", episode_idx=0, auto_close=True, version="version"):
     # 解析配置文件路径
     config_path = project_root / "configs" / "sim_replay" / f"{config_name}.yml"
     
@@ -29,7 +115,7 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
-    print(f"Using config: {config_path}")
+    print(f"Using config: {config_path} with version: {version}")
     
     # 使用 repo_path 的最后一段作为 Rerun 标题
     repo_name = Path(repo_path).name
@@ -41,7 +127,7 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
         print("Initializing State Replayer...")
         replayers["state"] = LerobotSimReplayer(
             config_path=str(config_path),
-            robot_version="default_version",
+            version=version,
             repo_path=repo_path,
             episode_idx=episode_idx,
             data_source=data_source,
@@ -53,7 +139,7 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
         print("Initializing Action Replayer...")
         replayers["action"] = LerobotSimReplayer(
             config_path=str(config_path),
-            robot_version="default_version",
+            version=version,
             repo_path=repo_path,
             episode_idx=episode_idx,
             data_source=data_source,
@@ -66,7 +152,7 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
         print(f"Initializing {data_type} Replayer...")
         replayers[data_type] = LerobotSimReplayer(
             config_path=str(config_path),
-            robot_version="default_version",
+            version=version,
             repo_path=repo_path,
             episode_idx=episode_idx,
             data_source=data_source,
@@ -82,7 +168,7 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
     chunk_dir_name = f"chunk-{chunk_idx:03d}"
     video_chunk_path = Path(repo_path) / "videos" / chunk_dir_name
     
-    video_caps = {}
+    video_readers = {}
     if video_chunk_path.exists():
         print(f"Searching for videos in: {video_chunk_path}")
         for cam_dir in video_chunk_path.iterdir():
@@ -91,42 +177,94 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
                 video_path = cam_dir / f"episode_{episode_idx:06d}.mp4"
                 if video_path.exists():
                     print(f"Found video: {video_path}")
-                    cap = cv2.VideoCapture(str(video_path))
-                    video_caps[cam_dir.name] = cap
+                    # Use VideoReader wrapper
+                    reader = VideoReader(video_path)
+                    video_readers[cam_dir.name] = reader
                 else:
                     print(f"Video not found in {cam_dir}: {video_path}")
     else:
         print(f"Warning: Video chunk directory not found at {video_chunk_path}")
 
-    video_views = []
-    for cam_name in sorted(video_caps.keys()):
-        video_views.append(rrb.Spatial2DView(origin=f"/01_videos/{cam_name}", name=cam_name))
-    if not video_views:
-        video_views = [rrb.Spatial2DView(origin="/01_videos", name="Videos")]
+    # Define layout keywords mapping
+    def get_layout_pos(name):
+        name_lower = name.lower()
+        
+        # Column: 0=Left, 1=Center, 2=Right
+        col = 1
+        if "left" in name_lower:
+            col = 0
+        elif "right" in name_lower:
+            col = 2
+            
+        # Row: 0=Top, 1=Middle, 2=Bottom
+        row = 1
+        
+        top_kws = ["head", "top", "upper", "global", "env"]
+        bottom_kws = ["leg", "lower", "bottom", "wrist", "foot"]
+        
+        for kw in top_kws:
+            if kw in name_lower:
+                row = 0
+                break
+        
+        if row == 1:
+            for kw in bottom_kws:
+                if kw in name_lower:
+                    row = 2
+                    break
+        
+        return col, row
 
-    video_rows = []
-    for i in range(0, len(video_views), 3):
-        video_rows.append(rrb.Horizontal(*video_views[i:i + 3]))
-
-    video_container = video_rows[0] if len(video_rows) == 1 else rrb.Vertical(*video_rows)
+    if not video_readers:
+        video_container = rrb.Spatial2DView(origin="/01_videos", name="Videos")
+    else:
+        # Grid: [col][row] -> list of views
+        grid = [[[] for _ in range(3)] for _ in range(3)]
+        
+        for cam_name in sorted(video_readers.keys()):
+            col, row = get_layout_pos(cam_name)
+            # view = rrb.Spatial2DView(origin=f"/01_videos/{cam_name}", name=cam_name.split(".")[-1]) # Use simpler name if possible
+            view = rrb.Spatial2DView(origin=f"/01_videos/{cam_name}/image", name=cam_name)
+            grid[col][row].append(view)
+            
+        # Build columns
+        cols = []
+        # Explicitly iterate 0, 1, 2 to maintain Left-Center-Right order
+        for c in range(3):
+            col_views = []
+            for r in range(3):
+                col_views.extend(grid[c][r])
+            
+            if col_views:
+                if len(col_views) > 1:
+                    cols.append(rrb.Vertical(*col_views))
+                else:
+                    cols.append(col_views[0])
+            
+        if not cols:
+            video_container = rrb.Spatial2DView(origin="/01_videos", name="Videos")
+        elif len(cols) == 1:
+            video_container = cols[0]
+        else:
+            video_container = rrb.Horizontal(*cols)
 
     rr.send_blueprint(
         rrb.Blueprint(
             rrb.Vertical(
                 video_container,
                 rrb.Horizontal(
-                    rrb.Spatial2DView(origin="/02_state", name="State"),
-                    rrb.Spatial2DView(origin="/03_action", name="Action"),
+                    rrb.Spatial2DView(origin="/02_state/image", name="State"),
+                    rrb.Spatial2DView(origin="/03_action/image", name="Action"),
                 ),
             ),
             auto_layout=False,
         )
     )
     
-    print(f"Starting replay for episode {episode_idx}...")
+    print(f"Loading data into Rerun for episode {episode_idx}...")
     
     frame_idx = 0
-    dt = 0.02  # 假设 50Hz，可按需调整
+    # dt = 0.01  # 假设 50Hz，可按需调整
     try:
         while True:
             # 推进所有 replayer
@@ -142,12 +280,15 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
             rr.set_time_sequence("frame_index", frame_idx)
             
             # 1. 记录视频（加前缀保证顺序）
-            for cam_name, cap in video_caps.items():
-                ret, frame = cap.read()
-                if ret:
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    # 直接写入相机名（父目录名），使用前缀保证顺序
-                    rr.log(f"01_videos/{cam_name}/image", rr.Image(frame_rgb))
+            for cam_name, reader in video_readers.items():
+                ret, frame_rgb = reader.read()
+                
+                if not ret or frame_rgb is None:
+                    # Generate error frame
+                    frame_rgb = get_error_frame(width=reader.width, height=reader.height, text="Error")
+                    
+                # 直接写入相机名（父目录名），使用前缀保证顺序
+                rr.log(f"01_videos/{cam_name}/image", rr.Image(frame_rgb))
             
             # 2. 记录 MuJoCo 图像（前缀区分 state/action）
             for name, replayer in replayers.items():
@@ -169,34 +310,25 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
             frame_idx += 1
             
             # 降速以便实时查看，避免瞬间播放完
-            time.sleep(dt)
+            # time.sleep(dt)
             
     except KeyboardInterrupt:
-        print("Interrupted by user")
+        print("Replay interrupted by user.")
+    except Exception as e:
+        error_msg = f"Error during replay loop: {e}\n{traceback.format_exc()}"
+        print(error_msg)
+        raise RuntimeError(error_msg) from e
     finally:
-        for cap in video_caps.values():
-            cap.release()
-        for replayer in replayers.values():
-            replayer.close_viewer()
-        print("Replay finished.")
+        # Release resources
+        for reader in video_readers.values():
+            reader.release()
+        
+        # Cleanup replayers if needed (though they mainly just hold data)
+        pass
 
-def main():
-    parser = argparse.ArgumentParser(description="Replay Lerobot dataset with MuJoCo and Rerun")
-    parser.add_argument("--repo_path", type=str, required=True, help="Path to the dataset")
-    parser.add_argument("--config_name", type=str, required=True, help="Name of the config file (e.g. agilex)")
-    parser.add_argument("--data_source", type=str, default="data", choices=["data", "sa_dpp"], help="Data source folder")
-    parser.add_argument("--data_type", type=str, default="all", help="Data columns to load (state/action/all)")
-    parser.add_argument("--episode_idx", type=int, default=0, help="Episode index")
-    
-    args = parser.parse_args()
-    
-    run_replay(
-        repo_path=args.repo_path,
-        config_name=args.config_name,
-        data_source=args.data_source,
-        data_type=args.data_type,
-        episode_idx=args.episode_idx
-    )
-
-if __name__ == "__main__":
-    main()
+        if auto_close:
+            # Give some time for Rerun to send data
+            time.sleep(1.0) 
+            # Note: Rerun spawns a separate process/tab, we can't force close it easily from here
+            # but we can stop the script.
+            print("Replay finished.")

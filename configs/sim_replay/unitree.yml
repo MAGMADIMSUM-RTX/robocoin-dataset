@@ -1,0 +1,68 @@
+
+sim:
+  xml_path: "configs/sim_replay/mjcfs/unitree_g1/g1_29dof_with_three_finger_hand.xml"  # 仿真模型路径
+
+  joints:
+    - left_shoulder_pitch_joint: left_shoulder_pitch_joint
+    - left_shoulder_roll_joint: left_shoulder_roll_joint
+    - left_shoulder_yaw_joint: left_shoulder_yaw_joint
+    - left_elbow_joint: left_elbow_joint
+    - left_wrist_roll_joint: left_wrist_roll_joint
+    - left_wrist_pitch_joint: left_wrist_pitch_joint
+    - left_wrist_yaw_joint: left_wrist_yaw_joint
+        # right arm
+    - right_shoulder_pitch_joint: right_shoulder_pitch_joint
+    - right_shoulder_roll_joint: right_shoulder_roll_joint
+    - right_shoulder_yaw_joint: right_shoulder_yaw_joint
+    - right_elbow_joint: right_elbow_joint
+    - right_wrist_roll_joint: right_wrist_roll_joint
+    - right_wrist_pitch_joint: right_wrist_pitch_joint
+    - right_wrist_yaw_joint: right_wrist_yaw_joint
+        # left_hand
+    - left_hand_thumb_0_joint: left_hand_thumb_0_joint
+    - left_hand_thumb_1_joint: left_hand_thumb_1_joint
+    - left_hand_thumb_2_joint: left_hand_thumb_2_joint
+    - left_hand_middle_0_joint: left_hand_middle_0_joint
+    - left_hand_middle_1_joint: left_hand_middle_1_joint
+    - left_hand_index_0_joint: left_hand_index_0_joint
+    - left_hand_index_1_joint: left_hand_index_1_joint
+        # right_hand
+    - right_hand_thumb_0_joint: right_hand_thumb_0_joint
+    - right_hand_thumb_1_joint: right_hand_thumb_1_joint
+    - right_hand_thumb_2_joint: right_hand_thumb_2_joint
+    - right_hand_index_0_joint: right_hand_index_0_joint
+    - right_hand_index_1_joint: right_hand_index_1_joint
+    - right_hand_middle_0_joint: right_hand_middle_0_joint
+    - right_hand_middle_1_joint: right_hand_middle_1_joint
+                                          
+  # 物理世界的限制 (MuJoCo 中的实际行程, 单位: 米或弧度)
+  gripper_config:
+    gripper: False
+
+  camera:   # 相机参数可以从 tools/sim_replay/get_camara.py 中获取
+    lookat_x: 0.487  
+    lookat_y: -0.000
+    lookat_z: 0.824
+    distance: 2.000
+    azimuth: -0.250
+    elevation: -81.250
+
+default_version: NULL
+
+show_plt:
+          # left_hand
+  - left_hand_joint_1_rad 
+  - left_hand_joint_2_rad 
+  - left_hand_joint_3_rad 
+  - left_hand_joint_4_rad 
+  - left_hand_joint_5_rad 
+  - left_hand_joint_6_rad 
+  - left_hand_joint_7_rad 
+        # right hand
+  - right_hand_joint_1_rad 
+  - right_hand_joint_2_rad 
+  - right_hand_joint_3_rad 
+  - right_hand_joint_4_rad 
+  - right_hand_joint_5_rad 
+  - right_hand_joint_6_rad 
+  - right_hand_joint_7_rad 

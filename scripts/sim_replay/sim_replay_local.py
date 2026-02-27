@@ -1,14 +1,35 @@
 #!/usr/bin/env python3
 '''
 python scripts/sim_replay/sim_replay_local.py \
-  --repo_path /mnt/nas/synnas/成功区/Galaxea_R1_Lite_Galaxea_R1_Lite_storage_object_brown_plate \
-  --config_module robocoin_dataset.sim_replay.configs.galaxea_config \
-  --config_class RealmanRS01LerobotSimReplayConfig \
-  --replay_source data
+  --repo_path /mnt/nas/synnas/成功区/Airbot_MMK2_Airbot_MMK2_storage_potato_right \
+  --config_module robocoin_dataset.sim_replay.configs.mmk2_config \
+  --config_class Mmk2LerobotSimReplayConfig \
+  --replay_source sa_dpp
+
+python scripts/sim_replay/sim_replay_local.py \
+  --repo_path /mnt/nas/synnas/docker2/robocoin-datasets/Cobot_Magic_move_beverage \
+  --config_module robocoin_dataset.sim_replay.configs.agilex_cobot_magic_config \
+  --config_class AgilexCobotMagicLerobotSimReplayConfig \
+  --replay_source sa_dpp
+  --episode_idx 94
 '''
+
 import argparse
 from pathlib import Path
 from importlib import import_module
+import sys
+
+# Ensure project root is on sys.path so running this script directly
+# can import the local `robocoin_dataset` package.
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# Prefer `src/` layout if present (e.g. src/robocoin_dataset)
+_SRC_ROOT = _PROJECT_ROOT / "src"
+if _SRC_ROOT.exists():
+    root_to_add = _SRC_ROOT
+else:
+    root_to_add = _PROJECT_ROOT
+if str(root_to_add) not in sys.path:
+    sys.path.insert(0, str(root_to_add))
 
 from robocoin_dataset.sim_replay.sim_replay import _sim_replay_dataset
 

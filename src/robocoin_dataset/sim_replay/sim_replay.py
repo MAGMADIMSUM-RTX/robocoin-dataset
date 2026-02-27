@@ -120,7 +120,7 @@ def _sync_sim_replay_tasks(
         return
     for item in items:
         item.sim_replay_status = TaskStatus.PENDING
-        item.sim_replay_version = item.sim_replay_version + 1
+        item.sim_replay_version = 0 if item.sim_replay_version is None else item.sim_replay_version + 1
         item.sim_replay_version_ps = item.sa_dpp_version
 
     session.commit()

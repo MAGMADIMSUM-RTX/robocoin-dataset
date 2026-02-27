@@ -1,6 +1,19 @@
 import argparse
 import logging
+import sys
 from pathlib import Path
+
+
+# Add project root and src to sys.path
+current_file = Path(__file__).resolve()
+project_root = current_file.parents[2] # scripts/sim_replay -> scripts -> root
+src_path = project_root / "src"
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
 
 from robocoin_dataset.state_action_data_post_process.state_action_data_post_process import (
     StateActionDataPostProcess,
@@ -97,9 +110,9 @@ python scripts/state_action_data_post_process/state_action_data_post_process.py 
 """usage:
 # agilex_cobot_decoupled_magic
 python scripts/state_action_data_post_process/state_action_data_post_process.py \
-    --db_file_path /mnt/db/datasets_new.db \
+    --db_file_path db/postgresql_config.yaml \
     --state_action_data_post_process_factory_config_path ./scripts/state_action_data_post_process/configs/state_action_data_post_process_factory_config.yaml \
-    --device_model yinhe \
-    --device_model_version lite_version \
+    --device_model agilex_cobot_decoupled_magic \
+    --device_model_version default_version \
     --log_dir ./logs/stat_action_data_post_process
 """

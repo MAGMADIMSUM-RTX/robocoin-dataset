@@ -7,8 +7,8 @@ class CustomFix:
         self.gripper_open_min = 0.0
 
     def get_mjcf_gripper_joint_data(self, lerobot_gripper_data: dict) -> dict:
-        left_gripper_data = lerobot_gripper_data.get("left_gripper_open", 0.0)
-        right_gripper_data = lerobot_gripper_data.get("right_gripper_open", 0.0)
+        left_gripper_data = lerobot_gripper_data["left_gripper_open"]
+        right_gripper_data = lerobot_gripper_data["right_gripper_open"]
 
         lglf_joint_data = left_gripper_data
         lgrf_joint_data = -lglf_joint_data
@@ -22,3 +22,4 @@ class CustomFix:
             "fr_joint7": rglf_joint_data,
             "fr_joint8": rgrf_joint_data,
         }
+
