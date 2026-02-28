@@ -35,8 +35,10 @@ class DatasetDB(Base):
     __tablename__ = "datasets"
 
     id = Column(Integer, primary_key=True, index=True)
-    dataset_name = Column(String(255), unique=False, index=True, nullable=False)
     dataset_uuid = Column(String(255), unique=True, index=True, nullable=False)
+    dataset_name = Column(String(255), unique=False, index=True, nullable=False)
+    dataset_name_id = Column(Integer,nullable=False,default=0)
+    dataset_batch_number = Column(Integer,nullable=False,default=0)
 
     # 入库相关字段
     device_model = Column(String(100), nullable=True)
@@ -57,6 +59,19 @@ class DatasetDB(Base):
     converted_episodes = Column(Integer, nullable=True, default=0)
     skipped_episodes = Column(Integer, nullable=True, default=0)
     convert_err_msg = Column(Text, nullable=True)
+
+
+    # Episode质量检测
+    qc_status = Column(Enum(TaskStatus), default=TaskStatus.PENDING, nullable=True)
+    qc_version_ps = Column(Integer, nullable=True, default=0)
+    qc_version = Column(Integer, nullable=True, default=0)
+    qc_err_msg = Column(Text, nullable=True)
+
+    qced_repo_gen_path = Column(String(255), nullable=True)
+    qced_repo_gen_status = Column(Enum(TaskStatus), default=TaskStatus.PENDING, nullable=True)
+    qced_repo_gen_err_msg = Column(Text, nullable=True)
+    qced_repo_gen_version = Column(Integer, nullable=True, default=0)
+    qced_repo_gen_version_ps = Column(Integer, nullable=True, default=0)
 
     # state 和 action后处理及Replay相关
     sa_dpp_status = Column(Enum(TaskStatus), default=TaskStatus.PENDING, nullable=True)
@@ -120,18 +135,6 @@ class DatasetDB(Base):
     data_merge_version = Column(Integer, nullable=True, default=0)
     data_merge_err_msg = Column(Text, nullable=True)
 
-    # Episode质量检测
-    qc_status = Column(Enum(TaskStatus), default=TaskStatus.PENDING, nullable=True)
-    qc_version_ps = Column(Integer, nullable=True, default=0)
-    qc_version = Column(Integer, nullable=True, default=0)
-    qc_err_msg = Column(Text, nullable=True)
-
-    qced_repo_gen_path = Column(String(255), nullable=True)
-    qced_repo_gen_status = Column(Enum(TaskStatus), default=TaskStatus.PENDING, nullable=True)
-    qced_repo_gen_err_msg = Column(Text, nullable=True)
-    qced_repo_gen_version = Column(Integer, nullable=True, default=0)
-    qced_repo_gen_version_ps = Column(Integer, nullable=True, default=0)
-
     # dataLoader 检测相关
     data_loader_detection_status = Column(
         Enum(TaskStatus), default=TaskStatus.PENDING, nullable=True
@@ -180,7 +183,9 @@ class DatasetDB(Base):
 class SceneTypeDB(Base):
     __tablename__ = "scene_types"
     id = Column(Integer, primary_key=True, index=True)
+    level_id = Column(Integer, nullable=False, default=1)
     name = Column(String(100), unique=True, nullable=False)
+    chinese_name = Column(String(100), unique=True, nullable=False)
     datasets = relationship(
         "DatasetDB", secondary="dataset_scene_types", back_populates="scene_types"
     )
@@ -208,11 +213,7 @@ class ObjectDB(Base):
     __tablename__ = "object"
     id = Column(Integer, primary_key=True, index=True)
     object_name = Column(String(100), nullable=False, index=True)
-    level1_category = Column(String(100), unique=False, nullable=True)
-    level2_category = Column(String(100), unique=False, nullable=True)
-    level3_category = Column(String(100), unique=False, nullable=True)
-    level4_category = Column(String(100), unique=False, nullable=True)
-    level5_category = Column(String(100), unique=False, nullable=True)
+    object_chinese_name = Column(String(100), nullable=False, index=True)
     datasets = relationship("DatasetDB", secondary="dataset_objects", back_populates="objects")
 
 

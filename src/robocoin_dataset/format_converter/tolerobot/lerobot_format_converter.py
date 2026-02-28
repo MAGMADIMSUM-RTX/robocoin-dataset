@@ -7,6 +7,8 @@ from pathlib import Path
 import numpy as np
 import yaml
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
+import glob
+import shutil
 
 from robocoin_dataset.constant import (
     LOCAL_DATASET_INFO_FILE,
@@ -43,6 +45,41 @@ from robocoin_dataset.format_converter.tolerobot.exceptions import (
     FrameCountMismatchError,
 )
 from robocoin_dataset.format_converter.utils.spatial_data_convertor import spatial_covertor_funcs
+import re
+
+
+# 校验规则配置
+VALIDATION_CONFIG = {
+    "cam_name": {
+        "valid_positions": [
+            "left", "right", "front", "rear", "upper", 
+            "lower", "middle", "top", "side", "global", "env"
+        ],
+        "valid_parts": [
+            "wrist", "head", "chest", "arm", "leg", "torso"
+        ],
+        "encoding_map": ["rgb", "depth"]
+    },
+    "state_action_names": {
+    # 核心修改：将 gripper_open_scale 加入正则匹配规则
+    "pattern": "^(left|right)_(arm_joint_\\d+_rad|gripper_open|eef_pos_[xyz]_m|eef_rot_euler_[xyz]_rad)$",
+    "valid_prefixes": ["left", "right"],
+    "valid_types": [
+        "arm_joint_1_rad", "arm_joint_2_rad", "arm_joint_3_rad", 
+        "arm_joint_4_rad", "arm_joint_5_rad", "arm_joint_6_rad",
+        "gripper_open",  # 保留该类型，与正则匹配
+        "eef_pos_x_m", "eef_pos_y_m", "eef_pos_z_m",
+        "eef_rot_euler_x_rad", "eef_rot_euler_y_rad", "eef_rot_euler_z_rad"
+    ],
+    "unit_map": {
+        "rad": "弧度",
+        "m": "米",
+    }
+}
+}
+
+# 预编译正则表达式
+STATE_ACTION_PATTERN = re.compile(VALIDATION_CONFIG["state_action_names"]["pattern"])
 
 
 class LerobotFormatConverter(ABC):
@@ -279,48 +316,53 @@ class LerobotFormatConverter(ABC):
 
     def _validate_convertor_config(self) -> None:
         """
-        Validate the convertor config.
+        Validate the convertor config, including cam_name and state/action name format check.
         """
         # check features:
         if FEATURES_KEY not in self.converter_config:
-            raise ValueError(f"Convertion config must contain {FEATURES_KEY} key.")
+            raise ConfigError(f"Convertion config must contain {FEATURES_KEY} key.")
 
         # check features.observation:
         if OBSERVATION_KEY not in self.converter_config[FEATURES_KEY]:
-            raise ValueError(
+            raise ConfigError(
                 f"Convertion config must contain {OBSERVATION_KEY} key in {FEATURES_KEY}."
             )
 
         # check features.observation.images:
         if IMAGE_KEY not in self.converter_config[FEATURES_KEY][OBSERVATION_KEY]:
-            raise ValueError(
+            raise ConfigError(
                 f"Convertion config must contain {IMAGE_KEY} key in {FEATURES_KEY}.{OBSERVATION_KEY}."
             )
 
         cam_names: list[str] = []
         for image_config in self.converter_config[FEATURES_KEY][OBSERVATION_KEY][IMAGE_KEY]:
             if CAM_NAME_KEY not in image_config:
-                raise ValueError(
+                raise ConfigError(
                     f"Convertion config must contain {CAM_NAME_KEY} key in {FEATURES_KEY}.{OBSERVATION_KEY}.{IMAGE_KEY}."
                 )
+            
+            # 校验摄像头名称格式
+            cam_name = image_config[CAM_NAME_KEY]
+            LerobotFormatConverter._validate_cam_name(cam_name)
+            
             cam_names.append(image_config[CAM_NAME_KEY])
             if ARGS_KEY not in image_config:
-                raise ValueError(
+                raise ConfigError(
                     f"Convertion config must contain {ARGS_KEY} key in {FEATURES_KEY}.{OBSERVATION_KEY}.{IMAGE_KEY}."
                 )
 
         if len(set(cam_names)) != len(cam_names):
-            raise ValueError(
+            raise ConfigError(
                 f"Convertion config has same cam_names in {FEATURES_KEY}.{OBSERVATION_KEY}.{IMAGE_KEY}"
             )
 
         if STATE_KEY not in self.converter_config[FEATURES_KEY][OBSERVATION_KEY]:
-            raise ValueError(
+            raise ConfigError(
                 f"Convertion config must contain {STATE_KEY} key in {FEATURES_KEY}.{OBSERVATION_KEY}."
             )
 
         if SUB_STATE_KEY not in self.converter_config[FEATURES_KEY][OBSERVATION_KEY][STATE_KEY]:
-            raise ValueError(
+            raise ConfigError(
                 f"Convertion config must contain {SUB_STATE_KEY} key in {FEATURES_KEY}.{OBSERVATION_KEY}.{STATE_KEY}."
             )
 
@@ -329,48 +371,142 @@ class LerobotFormatConverter(ABC):
             SUB_STATE_KEY
         ]:
             if NAME_KEY not in sub_state_config:
-                raise ValueError(
+                raise ConfigError(
                     f"Convertion config must contain {NAME_KEY} key in {FEATURES_KEY}.{OBSERVATION_KEY}.{STATE_KEY}.{SUB_STATE_KEY}."
                 )
+            
+            # 校验子状态名称格式
+            for name in sub_state_config[NAME_KEY]:
+                LerobotFormatConverter._validate_state_action_name(name, "state")
+            
             sub_state_names.extend(sub_state_config[NAME_KEY])
             if ARGS_KEY not in sub_state_config:
-                raise ValueError(
+                raise ConfigError(
                     f"Convertion config must contain {ARGS_KEY} key in {FEATURES_KEY}.{OBSERVATION_KEY}.{STATE_KEY}.{SUB_STATE_KEY}."
                 )
 
         if len(set(sub_state_names)) != len(sub_state_names):
             seen = set()
             duplicates = {x for x in sub_state_names if x in seen or seen.add(x)}
-            raise ValueError(
+            raise ConfigError(
                 f"Convertion config has same state names in {FEATURES_KEY}.{OBSERVATION_KEY}.{STATE_KEY}. "
                 f"Duplicates: {list(duplicates)}"
             )
 
         # check features.action:
         if ACTION_KEY not in self.converter_config[FEATURES_KEY]:
-            raise ValueError(f"Convertion config must contain {ACTION_KEY} key in {FEATURES_KEY}.")
+            raise ConfigError(f"Convertion config must contain {ACTION_KEY} key in {FEATURES_KEY}.")
 
         if SUB_ACTION_KEY not in self.converter_config[FEATURES_KEY][ACTION_KEY]:
-            raise ValueError(
+            raise ConfigError(
                 f"Convertion config must contain {SUB_ACTION_KEY} key in {FEATURES_KEY}.{ACTION_KEY}."
             )
 
         sub_action_names = []
         for sub_action_config in self.converter_config[FEATURES_KEY][ACTION_KEY][SUB_ACTION_KEY]:
             if NAME_KEY not in sub_action_config:
-                raise ValueError(
+                raise ConfigError(
                     f"Convertion config must contain {NAME_KEY} key in {FEATURES_KEY}.{ACTION_KEY}.{SUB_ACTION_KEY}."
                 )
+            
+            # 校验子动作名称格式
+            for name in sub_action_config[NAME_KEY]:
+                LerobotFormatConverter._validate_state_action_name(name, "action")
+            
             sub_action_names.extend(sub_action_config[NAME_KEY])
             if ARGS_KEY not in sub_action_config:
-                raise ValueError(
+                raise ConfigError(
                     f"Convertion config must contain {ARGS_KEY} key in {FEATURES_KEY}.{ACTION_KEY}.{SUB_ACTION_KEY}."
                 )
 
         if len(set(sub_action_names)) != len(sub_action_names):
-            raise ValueError(
+            raise ConfigError(
                 f"Convertion config has same state names in {FEATURES_KEY}.{OBSERVATION_KEY}.{ACTION_KEY}"
             )
+ 
+    @staticmethod
+    def _validate_cam_name(cam_name: str) -> None:
+        """
+        校验摄像头名称格式：cam_<位置>_<模态>
+        位置格式：<direction>_<part> (part 可选)
+        """
+        cam_config = VALIDATION_CONFIG["cam_name"]
+        parts = cam_name.split("_")
+        
+        # 基础格式校验：必须以 cam 开头，且至少包含 3 部分（cam + 位置 + 模态）
+        if len(parts) < 3 or parts[0] != "cam":
+            raise ValueError(
+                f"无效的摄像头名称格式: {cam_name}。"
+                f"正确格式应为: cam_<位置>_<模态>，例如 cam_high_rgb、cam_left_wrist_rgb"
+            )
+        
+        # 校验模态（最后一部分）
+        encoding = parts[-1]
+        if encoding not in cam_config["encoding_map"]:
+            raise ValueError(
+                f"摄像头名称 {cam_name} 中包含无效的模态 '{encoding}'。"
+                f"有效模态列表: {cam_config['encoding_map']}"
+            )
+        
+        # 解析位置部分（cam 和 模态 之间的所有部分）
+        position_parts = parts[1:-1]
+        if not position_parts:
+            raise ValueError(f"摄像头名称 {cam_name} 缺少位置信息（方向/部位）")
+        
+        # 校验方向（位置第一部分）
+        direction = position_parts[0]
+        if direction not in cam_config["valid_positions"]:
+            raise ValueError(
+                f"摄像头名称 {cam_name} 中包含无效的方向 '{direction}'。"
+                f"有效方向列表: {cam_config['valid_positions']}"
+            )
+        
+        # 校验部位（位置第二部分及以后，可选）
+        if len(position_parts) > 1:
+            part = "_".join(position_parts[1:])
+            if part not in cam_config["valid_parts"]:
+                raise ValueError(
+                    f"摄像头名称 {cam_name} 中包含无效的部位 '{part}'。"
+                    f"有效部位列表: {cam_config['valid_parts']}"
+                )
+
+    @staticmethod
+    def _validate_state_action_name(name: str, name_type: str) -> None:
+        """
+        校验状态/动作名称是否符合规则
+        :param name: 要校验的名称
+        :param name_type: 名称类型（"state" 或 "action"）
+        """
+        config = VALIDATION_CONFIG["state_action_names"]
+        
+        # 1. 正则格式校验
+        if not STATE_ACTION_PATTERN.match(name):
+            raise ValueError(
+                f"无效的{name_type}名称格式: {name}。"
+                f"正确格式应匹配正则表达式: {config['pattern']}"
+            )
+        
+        # 2. 拆分前缀和类型，分别校验
+        parts = name.split("_", 1)  # 只拆分一次，分离前缀和类型
+        if len(parts) != 2:
+            raise ValueError(f"无效的{name_type}名称格式: {name}。应包含前缀（left/right）和类型两部分")
+        
+        prefix, type_part = parts
+        
+        # 3. 校验前缀
+        if prefix not in config["valid_prefixes"]:
+            raise ValueError(
+                f"{name_type}名称 {name} 中包含无效的前缀 '{prefix}'。"
+                f"有效前缀列表: {config['valid_prefixes']}"
+            )
+        
+        # 4. 校验类型
+        if type_part not in config["valid_types"]:
+            raise ValueError(
+                f"{name_type}名称 {name} 中包含无效的类型 '{type_part}'。"
+                f"有效类型列表: {config['valid_types']}"
+            )
+
 
     def _get_tasks(self) -> list[str]:
         dataset_info_file_path = self.dataset_path / LOCAL_DATASET_INFO_FILE
@@ -701,12 +837,12 @@ class LerobotFormatConverter(ABC):
     def _get_lerobot_image_features(self) -> dict:
         lerobot_image_features = {}
         for image_config in self.converter_config[FEATURES_KEY][OBSERVATION_KEY][IMAGE_KEY]:
-            leroot_feature_key = image_config[LEROBOT_FEATURE_KEY]
+            lerobot_feature_key = image_config[LEROBOT_FEATURE_KEY]
             image_feature = {}
             image_feature[DTYPE_KEY] = image_config[DTYPE_KEY]
             image_feature[SHAPE_KEY] = image_config[SHAPE_KEY]
             image_feature[NAME_KEY] = image_config[NAME_KEY]
-            lerobot_image_features[leroot_feature_key] = image_feature
+            lerobot_image_features[lerobot_feature_key] = image_feature
         return lerobot_image_features
 
     def _get_lerobot_state_feature(self) -> dict:
@@ -994,8 +1130,10 @@ class LerobotFormatConverter(ABC):
                     actions_buffer=actions_buffer,
                 )
 
-                if not is_test:
-                    dataset.add_frame(frame=lerobot_datas, task=task)
+                # 修改：测试模式也保存数据，只是加日志标记
+                dataset.add_frame(frame=lerobot_datas, task=task)
+                # if is_test:
+                #     self.logger.info(f"🧪 测试模式：已将帧 {frame_idx} 添加到数据集（task: {task}）")
                 
                 converted_frames += 1
                 
@@ -1098,20 +1236,43 @@ class LerobotFormatConverter(ABC):
         Raises:
             ConfigError: 检测到配置错误（前N个episode高失败率）
         """
+        if is_test:
+            # 1. 定义基础temp目录路径（优先使用当前工作目录下的temp）
+            base_temp_dir = Path.cwd() / "temp"
+            
+            # 2. 匹配 temp/ 下所有 robocoin_* 格式的目录/文件
+            if base_temp_dir.exists():
+                # 构建匹配模式：temp/robocoin_*
+                cache_pattern = str(base_temp_dir / "robocoin_*")
+                
+                # 查找所有匹配的路径
+                cache_paths = glob.glob(cache_pattern)
+                
+                for cache_path in cache_paths:
+                    cache_path = Path(cache_path)
+                    try:
+                        # 删除目录（递归删除）
+                        if cache_path.is_dir():
+                            shutil.rmtree(cache_path, ignore_errors=True)
+                            self.logger.info(f"🧹 测试模式：已清理缓存目录 {cache_path}")
+                        # 删除文件
+                        elif cache_path.is_file():
+                            cache_path.unlink(missing_ok=True)
+                            self.logger.info(f"🧹 测试模式：已清理缓存文件 {cache_path}")
+                    except Exception as e:
+                        self.logger.warning(f"⚠️  测试模式：清理缓存 {cache_path} 失败: {e}")
+
         # 🆕 初始化self.lerobot_dataset，确保清理代码可以访问
         self.lerobot_dataset = None
         
-        if not is_test:
-            dataset = self._create_lerobot_dataset()
-            self.lerobot_dataset = dataset  # 🆕 保存到self，用于清理
-            
-            # 🔄 断点续转：获取已存在的episodes数量
-            existing_episodes = len(dataset) if dataset else 0
-            if existing_episodes > 0 and self.logger:
-                self.logger.info(f"🔄 检测到 {existing_episodes} 个已存在的episodes，将跳过它们")
-        else:
-            dataset = None  # 测试模式不需要数据集对象
-            existing_episodes = 0
+        # 修改1：测试模式也创建数据集（不再设置dataset=None）
+        dataset = self._create_lerobot_dataset()
+        self.lerobot_dataset = dataset  # 🆕 保存到self，用于清理
+        
+        # 🔄 断点续转：获取已存在的episodes数量
+        existing_episodes = len(dataset) if dataset else 0
+        if existing_episodes > 0 and self.logger:
+            self.logger.info(f"🔄 检测到 {existing_episodes} 个已存在的episodes，将跳过它们")
         
         global_ep_idx = existing_episodes  # 从已存在的episodes数量开始计数
         original_ep_idx = 0  # 原始数据中的全局episode索引（包含所有episode，包括跳过的）
@@ -1128,104 +1289,107 @@ class LerobotFormatConverter(ABC):
                     f"out of {len(self.path_task_dict)} total tasks"
                 )
         
-        for task_path, task in tasks_to_process:
-            episodes_num = self._get_task_episodes_num(task_path)
-            if is_test:
-                episodes_num = 1  # Test模式每个task只处理1个episode
-            
-            # 初始化任务统计
-            task_stats[task] = {
-                'attempted': 0,
-                'successful': 0,
-                'skipped': 0,
-                'skipped_frames': 0,
-            }
-            
-            for task_ep_idx in range(episodes_num):
-                # 🔄 断点续转：跳过已经转换的episodes
-                if original_ep_idx < existing_episodes:
-                    if self.logger and original_ep_idx == 0:
-                        self.logger.info(f"⏭️  跳过已转换的 {existing_episodes} 个episodes...")
-                    original_ep_idx += 1
-                    continue
+        try:
+            for task_path, task in tasks_to_process:
+                episodes_num = self._get_task_episodes_num(task_path)
+                if is_test:
+                    episodes_num = 2 # Test模式每个task只处理1个episode
                 
-                # 🧪 测试模式不使用严格模式（允许跳过字段缺失的episode）
-                # 正式模式：前N个episode使用严格模式（检测配置错误）
-                is_strict = global_ep_idx < self.strict_episodes and not is_test
+                # 初始化任务统计
+                task_stats[task] = {
+                    'attempted': 0,
+                    'successful': 0,
+                    'skipped': 0,
+                    'skipped_frames': 0,
+                }
                 
-                # 更新统计
-                self._conversion_stats['total_episodes'] += 1
-                task_stats[task]['attempted'] += 1
-                
-                try:
-                    converted_frames, skipped_frames = self._convert_episode_with_fault_tolerance(
-                        dataset=dataset if not is_test else None,
-                        task_path=task_path,
-                        task=task,
-                        task_ep_idx=task_ep_idx,
-                        global_ep_idx=global_ep_idx,
-                        is_strict=is_strict,
-                        is_test=is_test,
-                    )
-                    
-                    # Episode完全为空，跳过
-                    if converted_frames == 0 and skipped_frames == 0:
-                        self._conversion_stats['skipped_episodes'] += 1
-                        task_stats[task]['skipped'] += 1
-                        
-                        skip_reason = 'Empty episode or data quality issue'
-                        self._conversion_stats['skip_details'].append({
-                            'episode': original_ep_idx,
-                            'task': task,
-                            'task_episode': task_ep_idx,
-                            'reason': skip_reason,
-                            'skipped_entire_episode': True,
-                        })
-                        
-                        # 🆕 记录跳过的episode到mapping（使用original_ep_idx）
-                        source_files = self._get_episode_source_files(task_path, task_ep_idx)
-                        self.episode_source_mapping[original_ep_idx] = {
-                            "task": task,
-                            "task_path": str(task_path),
-                            "task_ep_idx": task_ep_idx,
-                            "original_ep_idx": original_ep_idx,
-                            "global_ep_idx": None,  # 未转换，无LeRobot索引
-                            "status": "skipped",
-                            "skip_reason": skip_reason,
-                            "source_files": source_files,
-                            "converted_frames": 0,
-                            "skipped_frames": 0,
-                        }
-                        
-                        self.logger.info(
-                            f"⏭️ 跳过 episode {original_ep_idx} "
-                            f"(task: {task}, task_ep: {task_ep_idx}): 空episode"
-                        )
-                        original_ep_idx += 1  # 🆕 original_ep_idx继续递增
+                for task_ep_idx in range(episodes_num):
+                    # 🔄 断点续转：跳过已经转换的episodes
+                    if original_ep_idx < existing_episodes:
+                        if self.logger and original_ep_idx == 0:
+                            self.logger.info(f"⏭️  跳过已转换的 {existing_episodes} 个episodes...")
+                        original_ep_idx += 1
                         continue
                     
+                    # 🧪 测试模式不使用严格模式（允许跳过字段缺失的episode）
+                    # 正式模式：前N个episode使用严格模式（检测配置错误）
+                    is_strict = global_ep_idx < self.strict_episodes and not is_test
+                    
                     # 更新统计
-                    self._conversion_stats['successful_episodes'] += 1
-                    self._conversion_stats['total_frames'] += converted_frames
-                    self._conversion_stats['skipped_frames'] += skipped_frames
-                    task_stats[task]['successful'] += 1
-                    task_stats[task]['skipped_frames'] += skipped_frames
+                    self._conversion_stats['total_episodes'] += 1
+                    task_stats[task]['attempted'] += 1
                     
-                    if skipped_frames > 0:
-                        self._conversion_stats['skip_details'].append({
-                            'episode': global_ep_idx,
-                            'task': task,
-                            'task_episode': task_ep_idx,
-                            'converted_frames': converted_frames,
-                            'skipped_frames': skipped_frames,
-                        })
-                    
-                    # 保存episode（带NAS错误重试）
-                    if not is_test:
+                    try:
+                        converted_frames, skipped_frames = self._convert_episode_with_fault_tolerance(
+                            dataset=dataset,  # 测试模式也传入dataset
+                            task_path=task_path,
+                            task=task,
+                            task_ep_idx=task_ep_idx,
+                            global_ep_idx=global_ep_idx,
+                            is_strict=is_strict,
+                            is_test=is_test,
+                        )
+                        
+                        # Episode完全为空，跳过
+                        if converted_frames == 0 and skipped_frames == 0:
+                            self._conversion_stats['skipped_episodes'] += 1
+                            task_stats[task]['skipped'] += 1
+                            
+                            skip_reason = 'Empty episode or data quality issue'
+                            self._conversion_stats['skip_details'].append({
+                                'episode': original_ep_idx,
+                                'task': task,
+                                'task_episode': task_ep_idx,
+                                'reason': skip_reason,
+                                'skipped_entire_episode': True,
+                            })
+                            
+                            # 🆕 记录跳过的episode到mapping（使用original_ep_idx）
+                            source_files = self._get_episode_source_files(task_path, task_ep_idx)
+                            self.episode_source_mapping[original_ep_idx] = {
+                                "task": task,
+                                "task_path": str(task_path),
+                                "task_ep_idx": task_ep_idx,
+                                "original_ep_idx": original_ep_idx,
+                                "global_ep_idx": None,  # 未转换，无LeRobot索引
+                                "status": "skipped",
+                                "skip_reason": skip_reason,
+                                "source_files": source_files,
+                                "converted_frames": 0,
+                                "skipped_frames": 0,
+                            }
+                            
+                            self.logger.info(
+                                f"⏭️ 跳过 episode {original_ep_idx} "
+                                f"(task: {task}, task_ep: {task_ep_idx}): 空episode"
+                            )
+                            original_ep_idx += 1  # 🆕 original_ep_idx继续递增
+                            continue
+                        
+                        # 更新统计
+                        self._conversion_stats['successful_episodes'] += 1
+                        self._conversion_stats['total_frames'] += converted_frames
+                        self._conversion_stats['skipped_frames'] += skipped_frames
+                        task_stats[task]['successful'] += 1
+                        task_stats[task]['skipped_frames'] += skipped_frames
+                        
+                        if skipped_frames > 0:
+                            self._conversion_stats['skip_details'].append({
+                                'episode': global_ep_idx,
+                                'task': task,
+                                'task_episode': task_ep_idx,
+                                'converted_frames': converted_frames,
+                                'skipped_frames': skipped_frames,
+                            })
+                        
+                        # 保存episode（带NAS错误重试）
+                        # 修改2：测试模式也保存episode
                         max_retries = 3
                         for retry in range(max_retries):
                             try:
                                 dataset.save_episode()
+                                if is_test:
+                                    self.logger.info(f"🧪 测试模式：已保存episode {global_ep_idx} 到数据集")
                                 break  # 成功则退出重试
                             except OSError as e:
                                 # Stale file handle (Errno 116) 或其他NAS错误
@@ -1259,110 +1423,155 @@ class LerobotFormatConverter(ABC):
                                 else:
                                     # 其他OSError，直接抛出
                                     raise
-                    
-                    # 🔧 收集源文件映射信息（成功转换的episode）
-                    source_files = self._get_episode_source_files(task_path, task_ep_idx)
-                    self.episode_source_mapping[original_ep_idx] = {
-                        "task": task,
-                        "task_path": str(task_path),
-                        "task_ep_idx": task_ep_idx,
-                        "original_ep_idx": original_ep_idx,  # 🆕 原始索引
-                        "global_ep_idx": global_ep_idx,  # 🆕 LeRobot索引
-                        "status": "converted",  # 🆕 状态标记
-                        "source_files": source_files,
-                        "converted_frames": converted_frames,
-                        "skipped_frames": skipped_frames,
-                    }
-                    
-                    # 🆕 清理episode缓存（MCAP等大文件格式需要释放内存）
-                    # 优先调用更全面的资源清理方法（MCAP converter实现）
-                    if hasattr(self, '_cleanup_episode_resources'):
-                        self._cleanup_episode_resources()
-                    elif hasattr(self, '_clear_episode_cache'):
-                        self._clear_episode_cache()
-                    
-                    # 检查失败率（在严格阶段结束时）
-                    if global_ep_idx == self.strict_episodes - 1:
-                        self._check_failure_rate_threshold(task_stats)
-                    
-                    yield (task, task_ep_idx, global_ep_idx)
-                    global_ep_idx += 1  # LeRobot索引递增
-                    original_ep_idx += 1  # 🆕 原始索引递增
-                    
-                except CriticalDataError as e:
-                    # 严重数据错误：跳过整个episode
-                    self._conversion_stats['skipped_episodes'] += 1
-                    task_stats[task]['skipped'] += 1
-                    
-                    # 🆕 提取错误类别（用于区分数据质量问题和配置错误）
-                    error_category = getattr(e, 'error_category', 'potential_config')
-                    
-                    skip_reason = str(e)
-                    self._conversion_stats['skip_details'].append({
-                        'episode': original_ep_idx,
-                        'task': task,
-                        'task_episode': task_ep_idx,
-                        'reason': skip_reason,
-                        'skipped_entire_episode': True,
-                        'error_category': error_category,  # 🆕 记录错误类别
-                    })
-                    
-                    # 🆕 记录跳过的episode到mapping
-                    source_files = self._get_episode_source_files(task_path, task_ep_idx)
-                    self.episode_source_mapping[original_ep_idx] = {
-                        "task": task,
-                        "task_path": str(task_path),
-                        "task_ep_idx": task_ep_idx,
-                        "original_ep_idx": original_ep_idx,
-                        "global_ep_idx": None,  # 未转换，无LeRobot索引
-                        "status": "skipped",
-                        "skip_reason": skip_reason,
-                        "source_files": source_files,
-                        "converted_frames": 0,
-                        "skipped_frames": 0,
-                    }
-                    
-                    self.logger.warning(
-                        f"⏭️ 跳过 episode {original_ep_idx} "
-                        f"(task: {task}, task_ep: {task_ep_idx}): {e}"
-                    )
-                    
-                    # 🔥 清理内存（尤其对MCAP大文件很重要）
-                    if hasattr(self, '_cleanup_episode_resources'):
-                        self._cleanup_episode_resources()
-                    elif hasattr(self, '_clear_episode_cache'):
-                        self._clear_episode_cache()
-                    
-                    original_ep_idx += 1  # 🆕 original_ep_idx继续递增
-                    continue
-                    
-                except ConfigError:
-                    # 配置错误：立即停止（仍然需要清理资源）
-                    if hasattr(self, '_cleanup_episode_resources'):
-                        self._cleanup_episode_resources()
-                    elif hasattr(self, '_clear_episode_cache'):
-                        self._clear_episode_cache()
-                    self.logger.error("检测到配置错误，停止转换")
-                    raise
-                    
+                        
+                        # 🔧 收集源文件映射信息（成功转换的episode）
+                        source_files = self._get_episode_source_files(task_path, task_ep_idx)
+                        self.episode_source_mapping[original_ep_idx] = {
+                            "task": task,
+                            "task_path": str(task_path),
+                            "task_ep_idx": task_ep_idx,
+                            "original_ep_idx": original_ep_idx,  # 🆕 原始索引
+                            "global_ep_idx": global_ep_idx,  # 🆕 LeRobot索引
+                            "status": "converted",  # 🆕 状态标记
+                            "source_files": source_files,
+                            "converted_frames": converted_frames,
+                            "skipped_frames": skipped_frames,
+                        }
+                        
+                        # 🆕 清理episode缓存（MCAP等大文件格式需要释放内存）
+                        # 优先调用更全面的资源清理方法（MCAP converter实现）
+                        if hasattr(self, '_cleanup_episode_resources'):
+                            self._cleanup_episode_resources()
+                        elif hasattr(self, '_clear_episode_cache'):
+                            self._clear_episode_cache()
+                        
+                        # 检查失败率（在严格阶段结束时）
+                        if global_ep_idx == self.strict_episodes - 1:
+                            self._check_failure_rate_threshold(task_stats)
+                        
+                        yield (task, task_ep_idx, global_ep_idx)
+                        global_ep_idx += 1  # LeRobot索引递增
+                        original_ep_idx += 1  # 🆕 原始索引递增
+                        
+                    except CriticalDataError as e:
+                        # 严重数据错误：跳过整个episode
+                        self._conversion_stats['skipped_episodes'] += 1
+                        task_stats[task]['skipped'] += 1
+                        
+                        # 🆕 提取错误类别（用于区分数据质量问题和配置错误）
+                        error_category = getattr(e, 'error_category', 'potential_config')
+                        
+                        skip_reason = str(e)
+                        self._conversion_stats['skip_details'].append({
+                            'episode': original_ep_idx,
+                            'task': task,
+                            'task_episode': task_ep_idx,
+                            'reason': skip_reason,
+                            'skipped_entire_episode': True,
+                            'error_category': error_category,  # 🆕 记录错误类别
+                        })
+                        
+                        # 🆕 记录跳过的episode到mapping
+                        source_files = self._get_episode_source_files(task_path, task_ep_idx)
+                        self.episode_source_mapping[original_ep_idx] = {
+                            "task": task,
+                            "task_path": str(task_path),
+                            "task_ep_idx": task_ep_idx,
+                            "original_ep_idx": original_ep_idx,
+                            "global_ep_idx": None,  # 未转换，无LeRobot索引
+                            "status": "skipped",
+                            "skip_reason": skip_reason,
+                            "source_files": source_files,
+                            "converted_frames": 0,
+                            "skipped_frames": 0,
+                        }
+                        
+                        self.logger.warning(
+                            f"⏭️ 跳过 episode {original_ep_idx} "
+                            f"(task: {task}, task_ep: {task_ep_idx}): {e}"
+                        )
+                        
+                        # 🔥 清理内存（尤其对MCAP大文件很重要）
+                        if hasattr(self, '_cleanup_episode_resources'):
+                            self._cleanup_episode_resources()
+                        elif hasattr(self, '_clear_episode_cache'):
+                            self._clear_episode_cache()
+                        
+                        original_ep_idx += 1  # 🆕 original_ep_idx继续递增
+                        continue
+                        
+                    except ConfigError:
+                        # 配置错误：立即停止（仍然需要清理资源）
+                        if hasattr(self, '_cleanup_episode_resources'):
+                            self._cleanup_episode_resources()
+                        elif hasattr(self, '_clear_episode_cache'):
+                            self._clear_episode_cache()
+                        self.logger.error("检测到配置错误，停止转换")
+                        raise
+                        
+                    except Exception as e:
+                        # 其他未处理的异常（清理资源后抛出）
+                        if hasattr(self, '_cleanup_episode_resources'):
+                            self._cleanup_episode_resources()
+                        elif hasattr(self, '_clear_episode_cache'):
+                            self._clear_episode_cache()
+                        self.logger.error(
+                            f"处理episode时发生未预期的错误: "
+                            f"task={task}, task_ep={task_ep_idx}, global_ep={global_ep_idx}. "
+                            f"Error: {e}"
+                        )
+                        raise RuntimeError(
+                            f"Failed to process episode {task_ep_idx} (global: {global_ep_idx}) "
+                            f"at task {task}"
+                        ) from e
+        
+        finally:
+            # ========== 核心新增：转换完成后的内存清理 ==========
+            self.logger.info("🧹 开始清理转换完成后的内存资源...")
+            
+            # 1. 停止LeRobot数据集的image writer进程池
+            if hasattr(self, 'lerobot_dataset') and self.lerobot_dataset is not None:
+                try:
+                    self.lerobot_dataset.stop_image_writer()
+                    self.logger.info("✅ 已停止image writer进程池")
                 except Exception as e:
-                    # 其他未处理的异常（清理资源后抛出）
-                    if hasattr(self, '_cleanup_episode_resources'):
-                        self._cleanup_episode_resources()
-                    elif hasattr(self, '_clear_episode_cache'):
-                        self._clear_episode_cache()
-                    self.logger.error(
-                        f"处理episode时发生未预期的错误: "
-                        f"task={task}, task_ep={task_ep_idx}, global_ep={global_ep_idx}. "
-                        f"Error: {e}"
-                    )
-                    raise RuntimeError(
-                        f"Failed to process episode {task_ep_idx} (global: {global_ep_idx}) "
-                        f"at task {task}"
-                    ) from e
+                    self.logger.warning(f"⚠️  停止image writer失败: {e}")
+            
+            # 2. 清理各类缓冲区
+            if hasattr(self, '_cleanup_episode_resources'):
+                try:
+                    self._cleanup_episode_resources()
+                    self.logger.info("✅ 已清理episode资源缓冲区")
+                except Exception as e:
+                    self.logger.warning(f"⚠️  清理episode资源失败: {e}")
+            
+            # 3. 手动触发Python垃圾回收
+            import gc
+            collected = gc.collect()
+            self.logger.info(f"✅ 垃圾回收完成，释放了 {collected} 个对象")
+            
+            # 4. 清空大的内存对象
+            if hasattr(self, 'episode_source_mapping') and len(self.episode_source_mapping) > 1000:
+                # 保留关键信息，清空大字典
+                self.episode_source_mapping = {}
+                self.logger.info("✅ 已清空episode_source_mapping大字典")
+            
+            # 5. 重置统计信息（如果不需要保留）
+            self._conversion_stats['skip_details'] = []
+            self.logger.info("✅ 已重置skip_details统计信息")
+            
+            self.logger.info("✅ 所有内存清理操作完成")
+            # ========== 内存清理结束 ==========
         
         # 转换完成后打印统计信息
         self._print_conversion_summary(task_stats)
+        
+        # 修改3：测试模式也保存映射文件
+        if is_test:
+            self.logger.info("🧪 测试模式：保存episode映射文件...")
+            self.save_episode_source_mapping()
+            self.save_original_data_paths()
+
 
     def _check_failure_rate_threshold(self, task_stats: dict) -> None:
         """检查失败率是否超过阈值

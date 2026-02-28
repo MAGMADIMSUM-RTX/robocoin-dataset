@@ -127,20 +127,20 @@ def process_yaml_files(root_dir: Path, dry_run: bool = False) -> dict:
                     logging.info(f"[dry-run] 将创建 UUID 文件: {uuid_output_file}")
 
         # ======== 2. 替换 task_descriptions 中的 '_' 为空格 ========
-        if 'task_descriptions' in data and isinstance(data['task_descriptions'], list):
-            original = data['task_descriptions']
-            data['task_descriptions'] = [
-                item.replace('_', ' ') if isinstance(item, str) else item
-                for item in original
-            ]
-            changed = [f"'{a}'→'{b}'" for a, b in zip(original, data['task_descriptions']) if a != b]
-            if changed:
-                logging.info(f"替换 task_descriptions: {', '.join(changed[:3])}{'...' if len(changed)>3 else ''}")
+        # if 'task_descriptions' in data and isinstance(data['task_descriptions'], list):
+        #     original = data['task_descriptions']
+        #     data['task_descriptions'] = [
+        #         item.replace('_', ' ') if isinstance(item, str) else item
+        #         for item in original
+        #     ]
+        #     changed = [f"'{a}'→'{b}'" for a, b in zip(original, data['task_descriptions']) if a != b]
+        #     if changed:
+        #         logging.info(f"替换 task_descriptions: {', '.join(changed[:3])}{'...' if len(changed)>3 else ''}")
 
         # ======== 3. 将 dataset_uuid 设为空（用于留空输出）========
-        if 'dataset_uuid' in data:
-            data['dataset_uuid'] = None
-            logging.debug(f"已设 dataset_uuid: None（将输出为 dataset_uuid:）")
+        # if 'dataset_uuid' in data:
+        #     data['dataset_uuid'] = None
+        #     logging.debug(f"已设 dataset_uuid: None（将输出为 dataset_uuid:）")
 
         # ======== 4. 写回原文件（带备份）========
         try:

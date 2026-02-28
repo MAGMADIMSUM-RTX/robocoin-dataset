@@ -5,7 +5,7 @@ features:
     images:
 
     ### values by manual
-    - cam_name: cam_high_rgb
+    - cam_name: cam_front_head_rgb
       args:
 
         ### key and values by manual
@@ -88,7 +88,7 @@ features:
           range_to: 11
 
         ### values by manual - 修正采集时的数值问题，需要乘以10
-        convert_func: multiply_by_10
+        # convert_func: multiply_by_10
 
       - names: 
         - left_eef_pos_x_m
@@ -139,7 +139,7 @@ features:
 
       ### values by manual
       - names: 
-        - right_gripper_open_rad
+        - right_gripper_open
         args:
           ### keys and values by manual
           h5_path: observations/qpos
@@ -147,7 +147,7 @@ features:
           range_to: 61
 
         ### values by manual
-        convert_func: multiply_by_10
+        # convert_func: multiply_by_10
 
       - names: 
         - right_eef_pos_x_m
@@ -221,7 +221,7 @@ features:
           range_to: 11
 
         ### values by manual
-        convert_func: multiply_by_10
+        # convert_func: multiply_by_10
 
       - names: 
         - left_eef_pos_x_m
@@ -272,7 +272,7 @@ features:
 
       ### values by manual
       - names: 
-        - right_gripper_open_rad
+        - right_gripper_open
         args:
           ### keys and values by manual
           h5_path: observations/qpos
@@ -280,7 +280,7 @@ features:
           range_to: 61
 
         ### values by manual
-        convert_func: multiply_by_10
+        # convert_func: multiply_by_10
 
       - names: 
         - right_eef_pos_x_m

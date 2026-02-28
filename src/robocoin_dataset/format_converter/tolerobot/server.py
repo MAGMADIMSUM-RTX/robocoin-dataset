@@ -207,7 +207,7 @@ class LeFormatConverterTaskServer(TaskServer):
                 item.convert_version = current_version + 1
 
             item.convert_path = str(
-                Path(self.convert_root_path) / f"{item.device_model}_{item.dataset_name}"
+                Path(self.convert_root_path) / f"{item.dataset_name}_{item.dataset_name_id}"
             )
             item.data_path = str(Path(item.yaml_file_path).parent)
             session.commit()
@@ -217,13 +217,13 @@ class LeFormatConverterTaskServer(TaskServer):
                     device_model_version=item.device_model_version,
                 )
             )
-            leformat_name = f"{item.device_model.lower()}_{item.dataset_name.lower()}"
+            leformat_name = f"{item.dataset_name.lower()}_{item.dataset_name_id}"
             client_log_path = Path(self.convert_root_path) / "client_logs" / leformat_name
-            repo_id = f"{ROBOCOIN_PLATFORM}/{item.dataset_name}"
+            repo_id = f"{ROBOCOIN_PLATFORM}/{item.dataset_name}_{item.dataset_name_id}"
 
             return {
                 DATASET_UUID: item.dataset_uuid,
-                DATASET_NAME: item.dataset_name,
+                DATASET_NAME: f"{item.dataset_name}_{item.dataset_name_id}",
                 LEFORMAT_PATH: item.convert_path,
                 DATASET_PATH: item.data_path,
                 DEVICE_MODEL: item.device_model,
