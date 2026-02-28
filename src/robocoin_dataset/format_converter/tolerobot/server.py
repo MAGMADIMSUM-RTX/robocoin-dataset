@@ -6,6 +6,9 @@ from pathlib import Path
 import yaml
 from sqlalchemy import and_, or_
 
+# 导入外部的夹爪归一化类
+from robocoin_dataset.format_converter.tolerobot.gripper_normalization import GripperOpenNormalizer
+
 from robocoin_dataset.constant import ROBOCOIN_PLATFORM
 from robocoin_dataset.database.database import DatasetDatabase
 from robocoin_dataset.database.models import (
@@ -60,6 +63,7 @@ class LeFormatConverterTaskServer(TaskServer):
         image_writer_threads: int = 4,
         is_test: bool = False,
         auto_reencode: bool = False,
+        enable_gripper_normalization: bool = True,  # 新增：是否启用夹爪归一化
     ) -> None:
         super().__init__(
             logger=logger,
@@ -81,6 +85,7 @@ class LeFormatConverterTaskServer(TaskServer):
 
         self.is_test = is_test
         self.auto_reencode = auto_reencode  # 🎬 自动重编码标志
+        self.enable_gripper_normalization = enable_gripper_normalization  # 保存归一化开关
 
         try:
             with open(converter_factory_config_path) as f:
@@ -240,8 +245,36 @@ class LeFormatConverterTaskServer(TaskServer):
                 AUTO_REENCODE: self.auto_reencode,
             }
 
+    def _normalize_gripper_open(self, dataset_path: str):
+        """
+        执行夹爪开度归一化
+        Args:
+            dataset_path: 转换后数据集的根路径
+        """
+        if not self.enable_gripper_normalization:
+            self.logger.info("夹爪归一化功能已禁用，跳过该步骤")
+            return
+            
+        try:
+            self.logger.info(f"开始对数据集 {dataset_path} 执行夹爪开度归一化...")
+            # 初始化归一化器
+            normalizer = GripperOpenNormalizer(dataset_path)
+            # 执行完整的归一化流程
+            success = normalizer.run()
+            
+            if success:
+                self.logger.info(f"数据集 {dataset_path} 夹爪归一化完成")
+            else:
+                self.logger.warning(f"数据集 {dataset_path} 夹爪归一化未完全执行")
+                
+        except FileNotFoundError as e:
+            self.logger.warning(f"归一化所需文件不存在: {e}，跳过归一化")
+        except Exception as e:
+            self.logger.error(f"执行夹爪归一化失败: {e}", exc_info=True)
+
     def handle_task_result(self, task_content: dict, task_result_content: dict) -> None:
         ds_uuid = task_content.get(DATASET_UUID)
+        dataset_path = task_content.get(LEFORMAT_PATH)  # 获取转换后的数据集路径
 
         task_status = task_result_content.get(TASK_RESULT_STATUS)
         task_status_msg = task_result_content.get(ERR_MSG)
@@ -280,3 +313,7 @@ class LeFormatConverterTaskServer(TaskServer):
                 f"total={total_episodes}, converted={converted_episodes}, skipped={skipped_episodes}, "
                 f"update_message: {task_status_msg}"
             )
+        
+        # ✨ 新增：任务成功完成后自动执行夹爪归一化
+        if task_status == TASK_SUCCESS and dataset_path:
+            self._normalize_gripper_open(dataset_path)

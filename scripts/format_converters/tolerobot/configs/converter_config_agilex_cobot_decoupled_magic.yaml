@@ -1,66 +1,20 @@
-### fps by manual
 fps: 30
 features:
   observation:
     images:
-
-    ### values by manual
     - cam_name: cam_front_head_rgb
       args:
-
-        ### key and values by manual
         h5_path: observations/images/cam_high
-
-
-      ### values by function
-      # dtype: video
-      # shape: [480, 640, 3]
-      # names: [height, width, channels]
-      # lerobot_feature: observations.images.cam_high : by _gen_lerobot_features()
-        
-
-    ### values by manual
     - cam_name: cam_left_wrist_rgb
       args:
-
-        ### keys and values by manual
         h5_path: observations/images/cam_left_wrist
-
-      ### values by function
-      # dtype: video
-      # shape: [480, 640, 3]
-      # names: [height, width, channels]
-      # lerobot_feature: observations.images.cam_left_wrist : by _gen_lerobot_features()
-
-    ### values by manual
     - cam_name: cam_right_wrist_rgb
       args:
-        ### keys and values by manual
         h5_path: observations/images/cam_right_wrist
 
-      ### values by function
-      # dtype: video
-      # shape: [480, 640, 3]
-      # names: [height, width, channels]
-      # lerobot_feature: observations.images.cam_right_wrist : by _gen_lerobot_features()
-
-
     state:
-      ### values by function
-      # lerobot_feature: observation.state : by _gen_lerobot_features()
-      # dtype: float32 
-      # shape: [16]
-
-      ## sub_states should be concatenated together here : by _gen_state_names(), such as:
-      # names: 
-      # - right_joint_1_rad
-      # - ...
-      # - right_joint_6_rad
-      # - ...
-
-
-      ### values by manual
       sub_state:
+      # 左手关节 - 原先是0-6，现在改为50-56（原右手区间）
       - names: 
         - left_arm_joint_1_rad
         - left_arm_joint_2_rad
@@ -68,58 +22,42 @@ features:
         - left_arm_joint_4_rad
         - left_arm_joint_5_rad
         - left_arm_joint_6_rad
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 0
-          range_to: 6
-        
-        ### values by manual
-        # convert_func: degree2rad
-      
-      ### values by manual
+          range_from: 50  # 修改：原0 → 50
+          range_to: 56    # 修改：原6 → 56
+
+      # 左手夹爪 - 原先是10-11，现在改为60-61（原右手区间）
       - names: 
         - left_gripper_open
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 10
-          range_to: 11
-
-        ### values by manual - 修正采集时的数值问题，需要乘以10
+          range_from: 60  # 修改：原10 → 60
+          range_to: 61    # 修改：原11 → 61
         # convert_func: multiply_by_10
 
+      # 左手EEF位置 - 原先是30-33，现在改为80-83（原右手区间）
       - names: 
         - left_eef_pos_x_m
         - left_eef_pos_y_m
         - left_eef_pos_z_m
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 30
-          range_to: 33
-        
-        ### values by manual
-        # convert_func: degree2rad
+          range_from: 80  # 修改：原30 → 80
+          range_to: 83    # 修改：原33 → 83
 
+      # 左手EEF旋转 - 原先是33-39，现在改为83-89（原右手区间）
       - names: 
         - left_eef_rot_euler_x_rad
         - left_eef_rot_euler_y_rad
         - left_eef_rot_euler_z_rad
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 33
-          range_to: 39
-        
-        ### values by manual
+          range_from: 83  # 修改：原33 → 83
+          range_to: 89    # 修改：原39 → 89
         convert_func: rot6d_to_euler_xyz
 
-
-      ### values by manual
+      # 右手关节 - 原先是50-56，现在改为0-6（原左手区间）
       - names: 
         - right_arm_joint_1_rad
         - right_arm_joint_2_rad
@@ -127,74 +65,45 @@ features:
         - right_arm_joint_4_rad
         - right_arm_joint_5_rad
         - right_arm_joint_6_rad
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 50
-          range_to: 56
+          range_from: 0   # 修改：原50 → 0
+          range_to: 6     # 修改：原56 → 6
 
-        ### values by manual
-        # convert_func: degree2rad
-
-      ### values by manual
+      # 右手夹爪 - 原先是60-61，现在改为10-11（原左手区间）
       - names: 
         - right_gripper_open
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 60
-          range_to: 61
-
-        ### values by manual
+          range_from: 10  # 修改：原60 → 10
+          range_to: 11    # 修改：原61 → 11
         # convert_func: multiply_by_10
 
+      # 右手EEF位置 - 原先是80-83，现在改为30-33（原左手区间）
       - names: 
         - right_eef_pos_x_m
         - right_eef_pos_y_m
         - right_eef_pos_z_m
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 80
-          range_to: 83
-        
-        ### values by manual
-        # convert_func: degree2rad
+          range_from: 30  # 修改：原80 → 30
+          range_to: 33    # 修改：原83 → 33
 
+      # 右手EEF旋转 - 原先是83-89，现在改为33-39（原左手区间）
       - names: 
         - right_eef_rot_euler_x_rad
         - right_eef_rot_euler_y_rad
         - right_eef_rot_euler_z_rad
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 83
-          range_to: 89
-        
-        ### values by manual
+          range_from: 33  # 修改：原83 → 33
+          range_to: 39    # 修改：原89 → 39
         convert_func: rot6d_to_euler_xyz
-
 
   action:
-    ### values by function
-    # lerobot_feature: observation.action: by _gen_lerobot_features()
-    # dtype: float32 
-    # shape: [16]
-
-    ## sub_actions should be concatenated together here, : by _gen_acton_names(), such as:
-    # names:
-    # - right_joint_1_rad
-    # - ...
-    # - right_joint_6_rad
-    # - ...
-
-    ### values by manual
     timeline_offset: 1
     sub_action:
-
+      # 左手关节 - 原0-6 → 50-56
       - names: 
         - left_arm_joint_1_rad
         - left_arm_joint_2_rad
@@ -203,56 +112,40 @@ features:
         - left_arm_joint_5_rad
         - left_arm_joint_6_rad
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 0
-          range_to: 6
-        
-        ### values by manual
-        # convert_func: degree2rad
+          range_from: 50  # 修改：原0 → 50
+          range_to: 56    # 修改：原6 → 56
       
-      ### values by manual
+      # 左手夹爪 - 原10-11 → 60-61
       - names: 
         - left_gripper_open
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 10
-          range_to: 11
+          range_from: 60  # 修改：原10 → 60
+          range_to: 61    # 修改：原11 → 61
 
-        ### values by manual
-        # convert_func: multiply_by_10
-
+      # 左手EEF位置 - 原30-33 → 80-83
       - names: 
         - left_eef_pos_x_m
         - left_eef_pos_y_m
         - left_eef_pos_z_m
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 30
-          range_to: 33
-        
-        ### values by manual
-        # convert_func: degree2rad
+          range_from: 80  # 修改：原30 → 80
+          range_to: 83    # 修改：原33 → 83
 
+      # 左手EEF旋转 - 原33-39 → 83-89
       - names: 
         - left_eef_rot_euler_x_rad
         - left_eef_rot_euler_y_rad
         - left_eef_rot_euler_z_rad
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 33
-          range_to: 39
-        
-        ### values by manual
+          range_from: 83  # 修改：原33 → 83
+          range_to: 89    # 修改：原39 → 89
         convert_func: rot6d_to_euler_xyz
 
-
-      ### values by manual
+      # 右手关节 - 原50-56 → 0-6
       - names: 
         - right_arm_joint_1_rad
         - right_arm_joint_2_rad
@@ -260,52 +153,36 @@ features:
         - right_arm_joint_4_rad
         - right_arm_joint_5_rad
         - right_arm_joint_6_rad
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 50
-          range_to: 56
+          range_from: 0   # 修改：原50 → 0
+          range_to: 6     # 修改：原56 → 6
 
-        ### values by manual
-        # convert_func: degree2rad
-
-      ### values by manual
+      # 右手夹爪 - 原60-61 → 10-11
       - names: 
         - right_gripper_open
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 60
-          range_to: 61
+          range_from: 10  # 修改：原60 → 10
+          range_to: 11    # 修改：原61 → 11
 
-        ### values by manual
-        # convert_func: multiply_by_10
-
+      # 右手EEF位置 - 原80-83 → 30-33
       - names: 
         - right_eef_pos_x_m
         - right_eef_pos_y_m
         - right_eef_pos_z_m
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 80
-          range_to: 83
-        
-        ### values by manual
-        # convert_func: degree2rad
+          range_from: 30  # 修改：原80 → 30
+          range_to: 33    # 修改：原83 → 33
 
+      # 右手EEF旋转 - 原83-89 → 33-39
       - names: 
         - right_eef_rot_euler_x_rad
         - right_eef_rot_euler_y_rad
         - right_eef_rot_euler_z_rad
-
         args:
-          ### keys and values by manual
           h5_path: observations/qpos
-          range_from: 83
-          range_to: 89
-        
-        ### values by manual
+          range_from: 33  # 修改：原83 → 33
+          range_to: 39    # 修改：原89 → 39
         convert_func: rot6d_to_euler_xyz
