@@ -613,9 +613,7 @@ class MotionAnnotationDataPostProcessor(DataPostProcessorBase):
             # 归一化到 [0, 1] 范围
             # 使用公式: (value - min) / (max - min)
             if self.gripper_value_open != self.gripper_value_close:
-                gripper_normalized = (gripper_data - self.gripper_value_close) / (
-                    self.gripper_value_open - self.gripper_value_close
-                )
+                gripper_normalized = gripper_data
                 # 限制在 [0, 1] 范围内
                 gripper_normalized = np.clip(gripper_normalized, 0.0, 1.0)
 
@@ -648,10 +646,9 @@ class MotionAnnotationDataPostProcessor(DataPostProcessorBase):
             gripper_data = eef_data[:, num_eef_cols:]
 
             # 归一化到 [0, 1] 范围
+            # 使用公式: (value - min) / (max - min)
             if self.gripper_value_open != self.gripper_value_close:
-                gripper_normalized = (gripper_data - self.gripper_value_close) / (
-                    self.gripper_value_open - self.gripper_value_close
-                )
+                gripper_normalized = gripper_data
                 # 限制在 [0, 1] 范围内
                 gripper_normalized = np.clip(gripper_normalized, 0.0, 1.0)
 

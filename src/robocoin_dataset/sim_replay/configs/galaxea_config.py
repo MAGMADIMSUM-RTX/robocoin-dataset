@@ -88,14 +88,14 @@ class GalaxeaR1LiteLerobotSimReplayConfig(LerobotSimReplayConfig):
     ]
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
-    state_gripper_lerobot_names: list[str] = ["left_gripper_open", "right_gripper_open"]
+    state_gripper_lerobot_names: list[str] = ["left_gripper_open_scale", "right_gripper_open_scale"]
     action_gripper_lerobot_names: list[str] = [
-        "left_gripper_open",
-        "right_gripper_open",
+        "left_gripper_open_scale",
+        "right_gripper_open_scale",
     ]
 
     has_gripper = True
-    gripper_position_max = 1.75
+    gripper_position_max = 1.0
     gripper_position_min = 0
     gripper_mjcf_joint_max = 0.05
     gripper_mjcf_joint_min = 0
@@ -205,14 +205,14 @@ class GalaxeaR1LiteH5Mp4LerobotSimReplayConfig(LerobotSimReplayConfig):
     ]
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
-    state_gripper_lerobot_names: list[str] = ["left_gripper_open", "right_gripper_open"]
+    state_gripper_lerobot_names: list[str] = ["left_gripper_open_scale", "right_gripper_open_scale"]
     action_gripper_lerobot_names: list[str] = [
-        "left_gripper_open",
-        "right_gripper_open",
+        "left_gripper_open_scale",
+        "right_gripper_open_scale",
     ]
 
     has_gripper = True
-    gripper_position_max = 1.75
+    gripper_position_max = 1.0
     gripper_position_min = 0
     gripper_mjcf_joint_max = 0.05
     gripper_mjcf_joint_min = 0

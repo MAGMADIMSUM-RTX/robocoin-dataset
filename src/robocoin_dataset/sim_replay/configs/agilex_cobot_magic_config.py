@@ -54,10 +54,10 @@ class AgilexCobotMagicLerobotH5Mp4NewSimReplayConfig(LerobotSimReplayConfig):
     ]
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
-    state_gripper_lerobot_names: list[str] = ["left_gripper_open", "right_gripper_open"]
+    state_gripper_lerobot_names: list[str] = ["left_gripper_open_scale", "right_gripper_open_scale"]
     action_gripper_lerobot_names = state_gripper_lerobot_names
 
-    gripper_open_max = 0.8
+    gripper_open_max = 1.0
     gripper_open_min = 0
     gripper_joint_max = 0.04
     gripper_joint_min = 0
@@ -142,10 +142,10 @@ class AgilexCobotMagicLerobotMultSenerSimReplayConfig(LerobotSimReplayConfig):
     ]
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
-    state_gripper_lerobot_names: list[str] = ["left_gripper_open", "right_gripper_open"]
+    state_gripper_lerobot_names: list[str] = ["left_gripper_open_scale", "right_gripper_open_scale"]
     action_gripper_lerobot_names = state_gripper_lerobot_names
 
-    gripper_open_max = 0.8
+    gripper_open_max = 1.0
     gripper_open_min = 0
     gripper_joint_max = 0.04
     gripper_joint_min = 0
@@ -232,10 +232,10 @@ class AgilexCobotMagicLerobotSimReplayConfig(LerobotSimReplayConfig):
     ]
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
-    state_gripper_lerobot_names: list[str] = ["left_gripper_open", "right_gripper_open"]
+    state_gripper_lerobot_names: list[str] = ["left_gripper_open_scale", "right_gripper_open_scale"]
     action_gripper_lerobot_names = state_gripper_lerobot_names
 
-    gripper_open_max = 0.8
+    gripper_open_max = 1.0
     gripper_open_min = 0
     gripper_joint_max = 0.04
     gripper_joint_min = 0
@@ -320,11 +320,11 @@ class AgilexCobotMagicLerobotH5Mp4SimReplayConfig(LerobotSimReplayConfig):
     ]
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
-    state_gripper_lerobot_names: list[str] = ["left_gripper_open", "right_gripper_open"]
+    state_gripper_lerobot_names: list[str] = ["left_gripper_open_scale", "right_gripper_open_scale"]
     action_gripper_lerobot_names = state_gripper_lerobot_names
 
-    gripper_open_max = 0.8
-    gripper_open_min = -0.02
+    gripper_open_max = 1.0
+    gripper_open_min = 0
     gripper_joint_max = 0.04
     gripper_joint_min = 0
 
@@ -408,10 +408,10 @@ class AgilexCobotMagicLerobotRealsenseSimReplayConfig(LerobotSimReplayConfig):
     ]
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
-    state_gripper_lerobot_names: list[str] = ["left_gripper_open", "right_gripper_open"]
+    state_gripper_lerobot_names: list[str] = ["left_gripper_open_scale", "right_gripper_open_scale"]
     action_gripper_lerobot_names = state_gripper_lerobot_names
 
-    gripper_open_max = 0.8
+    gripper_open_max = 1.0
     gripper_open_min = 0
     gripper_joint_max = 0.04
     gripper_joint_min = 0
