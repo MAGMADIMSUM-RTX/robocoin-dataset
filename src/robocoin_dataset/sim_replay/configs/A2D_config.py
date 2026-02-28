@@ -57,7 +57,7 @@ class A2DLerobotSimReplayConfig(LerobotSimReplayConfig):
 
     action_arm_joint_lerobot_names= state_arm_joint_lerobot_names
 
-    gripper_position_max = 1.02
+    gripper_position_max = 1.0
     gripper_position_min = 0.0
     # eef_sim 配置
     has_gripper = True
@@ -70,8 +70,8 @@ class A2DLerobotSimReplayConfig(LerobotSimReplayConfig):
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
     state_gripper_lerobot_names: list[str] = [
-        "left_gripper_open",
-        "right_gripper_open",
+        "left_gripper_open_scale",
+        "right_gripper_open_scale",
     ]
     action_gripper_lerobot_names = state_gripper_lerobot_names
 

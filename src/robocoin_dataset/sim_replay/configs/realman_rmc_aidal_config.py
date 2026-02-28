@@ -60,10 +60,10 @@ class RealmanRmcAidalLerobotSimReplayConfig(LerobotSimReplayConfig):
     ]
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
-    state_gripper_lerobot_names: list[str] = ["left_gripper_open", "right_gripper_open"]
+    state_gripper_lerobot_names: list[str] = ["left_gripper_open_scale", "right_gripper_open_scale"]
     action_gripper_lerobot_names = state_gripper_lerobot_names
 
-    gripper_open_max = 1000
+    gripper_open_max = 1.0
     gripper_open_min = 0
     gripper_joint_max = 0.0325
     gripper_joint_min = 0

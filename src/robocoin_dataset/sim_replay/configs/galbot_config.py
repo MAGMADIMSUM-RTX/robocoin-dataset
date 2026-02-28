@@ -72,9 +72,9 @@ class GalbotLerobotSimReplayConfig(LerobotSimReplayConfig):
 
     state_gripper_lerobot_names: list[str] = [
         # left_hand
-        "left_gripper_open",
+        "left_gripper_open_scale",
         # right hand
-        "right_gripper_open",
+        "right_gripper_open_scale",
     ]
     action_gripper_lerobot_names = state_gripper_lerobot_names
 

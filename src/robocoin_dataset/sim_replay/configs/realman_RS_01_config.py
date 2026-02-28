@@ -90,8 +90,8 @@ class RealmanRS01LerobotSimReplayConfig(LerobotSimReplayConfig):
     action_gripper_joint_mjcf_names = state_gripper_joint_mjcf_names
 
     state_gripper_lerobot_names: list[str] = [
-        "left_gripper_open",
-        "right_gripper_open",
+        "left_gripper_open_scale",
+        "right_gripper_open_scale",
     ]
     action_gripper_lerobot_names = state_gripper_lerobot_names
 
