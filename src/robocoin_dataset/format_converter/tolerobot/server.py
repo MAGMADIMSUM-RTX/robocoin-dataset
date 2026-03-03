@@ -8,7 +8,7 @@ from sqlalchemy import and_, or_
 
 # 导入外部的夹爪归一化类
 from robocoin_dataset.format_converter.tolerobot.gripper_normalization import GripperOpenNormalizer
-
+from robocoin_dataset.format_converter.tolerobot.data_range_check import LerobotDatasetValidator
 from robocoin_dataset.constant import ROBOCOIN_PLATFORM
 from robocoin_dataset.database.database import DatasetDatabase
 from robocoin_dataset.database.models import (
@@ -64,6 +64,7 @@ class LeFormatConverterTaskServer(TaskServer):
         is_test: bool = False,
         auto_reencode: bool = False,
         enable_gripper_normalization: bool = True,  # 新增：是否启用夹爪归一化
+        enable_dataset_validation: bool = True
     ) -> None:
         super().__init__(
             logger=logger,
@@ -86,6 +87,7 @@ class LeFormatConverterTaskServer(TaskServer):
         self.is_test = is_test
         self.auto_reencode = auto_reencode  # 🎬 自动重编码标志
         self.enable_gripper_normalization = enable_gripper_normalization  # 保存归一化开关
+        self.enable_dataset_validation = enable_dataset_validation
 
         try:
             with open(converter_factory_config_path) as f:
@@ -317,3 +319,17 @@ class LeFormatConverterTaskServer(TaskServer):
         # ✨ 新增：任务成功完成后自动执行夹爪归一化
         if task_status == TASK_SUCCESS and dataset_path:
             self._normalize_gripper_open(dataset_path)
+
+            self.logger.info(f"开始对数据集 {dataset_path} 执行后置物理极限校验...")
+            try: 
+                validator = LerobotDatasetValidator(dataset_path)
+                is_valid, error_details = validator.run()
+                
+                if is_valid:
+                    self.logger.info(f"✅ 数据集 {dataset_path} 后置校验完美通过！")
+                else:
+                    # 💡 强提醒：此时数据库已经是 COMPLETED，需要打印醒目的警告
+                    self.logger.error(f"❌ 数据集 {dataset_path} 校验未通过！注意：数据库中该任务状态仍为 COMPLETED，请根据日志手动核查脏数据。")
+                    
+            except Exception as e:
+                self.logger.error(f"执行数据集校验时发生崩溃: {e}", exc_info=True)
