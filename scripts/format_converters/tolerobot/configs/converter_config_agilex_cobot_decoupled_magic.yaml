@@ -34,7 +34,7 @@ features:
           h5_path: observations/qpos
           range_from: 60  # 修改：原10 → 60
           range_to: 61    # 修改：原11 → 61
-        # convert_func: multiply_by_10
+        convert_func: multiply_by_10
 
       # 左手EEF位置 - 原先是30-33，现在改为80-83（原右手区间）
       - names: 
@@ -77,7 +77,7 @@ features:
           h5_path: observations/qpos
           range_from: 10  # 修改：原60 → 10
           range_to: 11    # 修改：原61 → 11
-        # convert_func: multiply_by_10
+        convert_func: multiply_by_10
 
       # 右手EEF位置 - 原先是80-83，现在改为30-33（原左手区间）
       - names: 
@@ -123,6 +123,7 @@ features:
           h5_path: observations/qpos
           range_from: 60  # 修改：原10 → 60
           range_to: 61    # 修改：原11 → 61
+        convert_func: multiply_by_10
 
       # 左手EEF位置 - 原30-33 → 80-83
       - names: 
@@ -165,6 +166,7 @@ features:
           h5_path: observations/qpos
           range_from: 10  # 修改：原60 → 10
           range_to: 11    # 修改：原61 → 11
+        convert_func: multiply_by_10
 
       # 右手EEF位置 - 原80-83 → 30-33
       - names: 

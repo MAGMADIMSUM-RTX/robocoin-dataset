@@ -70,6 +70,10 @@ def multiply_by_10(input: np.ndarray) -> np.ndarray:
     """Multiply input by 10 - used to correct Magic gripper data that is 10x smaller than actual"""
     return input * 10.0
 
+def multiply_by_100(input: np.ndarray) -> np.ndarray:
+    """Multiply input by 10 - used to correct Magic gripper data that is 10x smaller than actual"""
+    return input * 100.0
+
 
 def to_float32(input: np.ndarray) -> np.ndarray:
     """

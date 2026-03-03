@@ -56,7 +56,7 @@ VALIDATION_CONFIG = {
             "lower", "middle", "top", "side", "global", "env"
         ],
         "valid_parts": [
-            "wrist", "head", "chest", "arm", "leg", "torso"
+            "wrist", "head", "chest", "arm", "leg", "torso", "fisheye"
         ],
         "encoding_map": ["rgb", "depth"]
     },
@@ -427,17 +427,18 @@ class LerobotFormatConverter(ABC):
     @staticmethod
     def _validate_cam_name(cam_name: str) -> None:
         """
-        校验摄像头名称格式：cam_<位置>_<模态>
-        位置格式：<direction>_<part> (part 可选)
+        校验摄像头名称格式：cam_<方位组合>_<部位>_<模态>
+        支持多个方位词组合，例如：cam_front_left_head_rgb、cam_top_right_wrist_rgb
         """
         cam_config = VALIDATION_CONFIG["cam_name"]
         parts = cam_name.split("_")
         
-        # 基础格式校验：必须以 cam 开头，且至少包含 3 部分（cam + 位置 + 模态）
+        # 基础格式校验：必须以 cam 开头，且至少包含 3 部分（cam + 位置组合 + 模态）
         if len(parts) < 3 or parts[0] != "cam":
             raise ValueError(
                 f"无效的摄像头名称格式: {cam_name}。"
-                f"正确格式应为: cam_<位置>_<模态>，例如 cam_high_rgb、cam_left_wrist_rgb"
+                f"正确格式应为: cam_<方位组合>_<部位>_<模态> 或 cam_<方位组合>_<模态>，"
+                f"例如 cam_front_left_rgb、cam_top_right_head_rgb"
             )
         
         # 校验模态（最后一部分）
@@ -448,27 +449,38 @@ class LerobotFormatConverter(ABC):
                 f"有效模态列表: {cam_config['encoding_map']}"
             )
         
-        # 解析位置部分（cam 和 模态 之间的所有部分）
-        position_parts = parts[1:-1]
-        if not position_parts:
-            raise ValueError(f"摄像头名称 {cam_name} 缺少位置信息（方向/部位）")
+        # 分离位置组合+部位部分（cam 和 模态 之间的所有部分）
+        position_and_part_parts = parts[1:-1]
+        if not position_and_part_parts:
+            raise ValueError(f"摄像头名称 {cam_name} 缺少位置信息（方位组合）")
         
-        # 校验方向（位置第一部分）
-        direction = position_parts[0]
-        if direction not in cam_config["valid_positions"]:
+        # 提取方位组合和部位：
+        # 1. 从后往前找第一个有效的部位词
+        part = None
+        position_parts = position_and_part_parts
+        for i in range(len(position_and_part_parts)-1, -1, -1):
+            if position_and_part_parts[i] in cam_config["valid_parts"]:
+                part = position_and_part_parts[i]
+                position_parts = position_and_part_parts[:i]
+                break
+        
+        # 2. 校验方位组合（所有方位词都必须有效）
+        if not position_parts:
+            raise ValueError(f"摄像头名称 {cam_name} 缺少方位信息")
+        
+        invalid_positions = [p for p in position_parts if p not in cam_config["valid_positions"]]
+        if invalid_positions:
             raise ValueError(
-                f"摄像头名称 {cam_name} 中包含无效的方向 '{direction}'。"
-                f"有效方向列表: {cam_config['valid_positions']}"
+                f"摄像头名称 {cam_name} 中包含无效的方位词: {invalid_positions}。"
+                f"有效方位词列表: {cam_config['valid_positions']}"
             )
         
-        # 校验部位（位置第二部分及以后，可选）
-        if len(position_parts) > 1:
-            part = "_".join(position_parts[1:])
-            if part not in cam_config["valid_parts"]:
-                raise ValueError(
-                    f"摄像头名称 {cam_name} 中包含无效的部位 '{part}'。"
-                    f"有效部位列表: {cam_config['valid_parts']}"
-                )
+        # 3. 校验部位（如果有）
+        if part and part not in cam_config["valid_parts"]:
+            raise ValueError(
+                f"摄像头名称 {cam_name} 中包含无效的部位 '{part}'。"
+                f"有效部位列表: {cam_config['valid_parts']}"
+            )
 
     @staticmethod
     def _validate_state_action_name(name: str, name_type: str) -> None:
