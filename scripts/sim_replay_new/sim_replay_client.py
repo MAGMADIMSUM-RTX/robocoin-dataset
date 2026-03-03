@@ -54,6 +54,13 @@ class SimReplayNewClient(TaskClient):
             heartbeat_interval=heartbeat_interval,
             logger=logger,
         )
+        self.should_exit = False
+
+    async def submit_result(self, result: dict) -> None:
+        await super().submit_result(result)
+        if self.should_exit:
+            self.logger.info("Client exiting as requested by user after submitting result.")
+            sys.exit(0)
 
     def get_task_category(self) -> str:
         return "simulation_replay_new"
@@ -61,13 +68,40 @@ class SimReplayNewClient(TaskClient):
     def generate_task_request_desc(self) -> dict:
         return {}
 
+    def _cleanup_viewers(self):
+        """Clean up matplotlib and rerun viewers"""
+        try:
+            # Kill rerun processes
+            subprocess.run(["pkill", "-f", "rerun"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            # Close matplotlib windows if possible (though running in separate process usually)
+            # Since run_replay is in same process, we can try to close matplotlib
+            try:
+                import matplotlib.pyplot as plt
+                # Avoid tkinter RuntimeError by checking main loop or catching exception
+                plt.close('all')
+            except ImportError:
+                pass
+            except RuntimeError:
+                # Catch RuntimeError: main thread is not in main loop
+                pass
+            except Exception:
+                pass
+                
+        except Exception as e:
+            self.logger.warning(f"Error cleaning up viewers: {e}")
+
     async def process_task(self, task_data: dict) -> dict:
-        # Run sync task in executor to avoid blocking heartbeat
-        loop = asyncio.get_event_loop()
+        # Clean up previous viewers before starting new task
+        self._cleanup_viewers()
+
+        # Run sync task in main thread because matplotlib requires main thread
+        # Note: This will block the event loop and heartbeat during user interaction!
         task_id = task_data.get(TASK_ID)
         
         try:
-            task_result = await loop.run_in_executor(None, self._sync_process_task, task_data)
+            # task_result = await loop.run_in_executor(None, self._sync_process_task, task_data)
+            task_result = self._sync_process_task(task_data)
             return task_result
         except Exception as e:
             error_msg = f"{e}\n{traceback.format_exc()}"
@@ -111,13 +145,6 @@ class SimReplayNewClient(TaskClient):
         else:
              self.logger.warning(f"Could not determine total episodes for {dataset_uuid}, defaulting to 0")
 
-        # Close previous Rerun viewer
-        try:
-            subprocess.run(["pkill", "rerun"], check=False)
-            time.sleep(0.5)
-        except Exception:
-            pass
-
         # Run replay
         print(f"\n--- Replaying Dataset {dataset_uuid} Episode {episode_idx} ---")
         print("Press Ctrl+C in the terminal to stop replay and provide feedback.")
@@ -149,13 +176,15 @@ class SimReplayNewClient(TaskClient):
         
         while True:
             try:
-                user_input = input(f"Dataset {dataset_uuid}: 通过 (p) / 失败 (f) / 通过并退出 (c)? [p]: ").strip().lower()
+                user_input = input(f"Dataset {dataset_uuid}: 通过 (p) / 失败 (f) / 退出 (c)? [p]: ").strip().lower()
                 if user_input in ["", "p", "pass"]:
                     final_status = TASK_SUCCESS
                     break
                 elif user_input in ["c", "close", "exit"]:
+                    print("Exiting client...")
+                    self._cleanup_viewers()
                     final_status = TASK_SUCCESS
-                    exit_after_update = True
+                    self.should_exit = True
                     break
                 elif user_input in ["f", "fail"]:
                     final_status = TASK_FAILED
@@ -173,9 +202,8 @@ class SimReplayNewClient(TaskClient):
                 self.logger.error("Input stream closed unexpectedly.")
                 break
 
-        if exit_after_update:
-            self.logger.info("User requested exit after this task.")
-            print("Please Ctrl+C to exit client.")
+        # Cleanup after task is done (before next one starts or exit)
+        self._cleanup_viewers()
             
         return {
             TASK_RESULT_STATUS: final_status,

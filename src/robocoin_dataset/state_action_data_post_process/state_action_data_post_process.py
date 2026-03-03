@@ -107,7 +107,7 @@ def _sync_state_action_data_post_processing_tasks(
         return
     for item in items:
         item.sa_dpp_status = TaskStatus.PENDING
-        item.sa_dpp_version = item.sa_dpp_version + 1
+        item.sa_dpp_version = item.sa_dpp_version + 1 if item.sa_dpp_version is not None else 1
         item.sa_dpp_version_ps = item.qced_repo_gen_version  # 同步：改为 qced 版本
 
     session.commit()

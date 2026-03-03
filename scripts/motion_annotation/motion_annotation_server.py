@@ -1,7 +1,11 @@
 import argparse
 import asyncio
 import logging
+import sys
 from pathlib import Path
+
+# Add project root to sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 
 from robocoin_dataset.annotation.motion_annotation.motion_annotation_data_post_process import (
     MotionAnnotationDataPostProcessServer,
@@ -104,17 +108,17 @@ if __name__ == "__main__":
 """Usage:
 
 # 原有批量处理用法
-python scripts/annotation/motion_annotation/motion_annotation_server.py \
-    --db_file_path ./db/datasets_new.db \
+python scripts/motion_annotation/motion_annotation_server.py \
+    --db_file_path ./db/postgresql_config.yaml \
     --host 0.0.0.0 \
     --port 8766 \
     --sim_replay_config_path ./scripts/sim_replay/configs/sim_replay_config_path.yaml \
-    --device_model realman_rmc_aidal \
+    --device_model Agilex_Cobot_Magic \
     --device_model_version default_version \
     --log_dir ./logs/
 
 # 新增指定UUID用法
-python scripts/annotation/motion_annotation/motion_annotation_server.py \
+python scripts/motion_annotation/motion_annotation_server.py \
     --db_file_path ./db/datasets_new.db \
     --host 0.0.0.0 \
     --port 8766 \

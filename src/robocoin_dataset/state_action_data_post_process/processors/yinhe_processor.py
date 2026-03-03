@@ -157,7 +157,12 @@ class YinheProcessor(StateActionDataPostProcessorBase):
             ], axis=1)
             # print("已将 gripper 数据从 state 复制到 action。")
 
-        return {"observation.state": out_state, "action": out_action}
+        result = {"observation.state": out_state, "action": out_action}
+        if "gripper_open_scale_state" in ori_data:
+            result["gripper_open_scale_state"] = ori_data["gripper_open_scale_state"]
+        if "gripper_open_scale_action" in ori_data:
+            result["gripper_open_scale_action"] = ori_data["gripper_open_scale_action"]
+        return result
     
     def get_modified_feature_names(self):
         return super().get_modified_feature_names()
