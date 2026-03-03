@@ -17,11 +17,11 @@ python scripts/sim_replay_new/sim_replay_local.py \
     --episode_idx 0
 
 python scripts/sim_replay_new/sim_replay_local.py \
-    --repo_path /mnt/nas/synnas/docker2/robocoin-datasets/Cobot_Magic_move_beverage \
+    --repo_path /home/user/robocoin-dataset_new/Agilex_Cobot_Magic_pour_water_into_cup_0 \
     --config_name agilex \
-    --data_source sa_dpp \
+    --data_source data \
     --data_type all \
-    --episode_idx 94 \
+    --episode_idx 0 \
     --version default_version
 """
 
@@ -120,7 +120,7 @@ def main():
     )
     
     print("\nReplay finished. Charts should remain open.")
-    print("Press Ctrl+C to exit this script (charts may close depending on backend).")
+    input("Type any key to exit this script (charts may close depending on backend).")
     try:
         # Keep main thread alive if needed by some backends, though rerun usually runs in separate process/thread
         # But auto_close=False in run_replay should handle the blocking/input wait.

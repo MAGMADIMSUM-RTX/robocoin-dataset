@@ -6,8 +6,7 @@ import sys
 import traceback
 from pathlib import Path
 import matplotlib.pyplot as plt
-
-
+from scipy.spatial.transform import Rotation as R
 import mujoco
 import mujoco.viewer
 import numpy as np
@@ -102,6 +101,18 @@ class LerobotSimReplayer:
         self.mappings = []
         self._build_mappings()
 
+        # 解析 EEF Sites
+        self.eef_site_ids = {}
+        # 优先从配置读取，如果没有则默认尝试 left_eef_site 和 right_eef_site
+        target_eefs = self.sim_cfg.get("eef_name")
+        if not target_eefs:
+            target_eefs = ["left_eef_site", "right_eef_site"]
+            
+        for name in target_eefs:
+            site_id = mujoco.mj_name2id(self.mjcf_model, mujoco.mjtObj.mjOBJ_SITE, name)
+            if site_id != -1:
+                self.eef_site_ids[name] = site_id
+
         # 4. 【优化】预加载 Fix 函数，避免在 step 中重复 import
         self._init_fix_function()
 
@@ -141,10 +152,22 @@ class LerobotSimReplayer:
             self.plt_keys = [self.plt_keys]
             
         self.plt_initialized = False
-        self.plt_data = {k: [] for k in self.plt_keys}
+        
+        # Flatten plt_keys for initial data storage if needed
+        # Actual structure is handled in _init_plot
+        flat_keys = []
+        if self.plt_keys:
+            if isinstance(self.plt_keys[0], list):
+                for group in self.plt_keys:
+                    flat_keys.extend(group)
+            elif isinstance(self.plt_keys[0], str):
+                flat_keys = self.plt_keys
+        
+        self.plt_data = {k: [] for k in flat_keys}
         self.plt_frames = []
         self.fig = None
         self.ax = None
+        self.axs = None # Initialize axs
         self.lines = {}
 
     def _init_fix_function(self):
@@ -296,38 +319,78 @@ class LerobotSimReplayer:
 
         return pixels  # 返回 numpy array (H, W, 3) RGB格式
 
-    def _init_plot(self, keys):
+    def _init_plot(self, key_groups):
+        """Initialize matplotlib plot with multiple subplots based on key groups"""
         try:
+            import matplotlib.pyplot as plt
+            
+            # Normalize key_groups to be a list of lists
+            # If it's a flat list, wrap it in a single list
+            # If it's a string, wrap it in a list of list
+            if not key_groups:
+                 return
+
+            if isinstance(key_groups, str):
+                self.plot_groups = [[key_groups]]
+            elif isinstance(key_groups, list):
+                if not key_groups:
+                    return
+                # Check if it is a list of strings (flat) or list of lists
+                if isinstance(key_groups[0], str):
+                    self.plot_groups = [key_groups]
+                else:
+                    self.plot_groups = key_groups
+            else:
+                 print(f"Invalid plot config: {key_groups}")
+                 return
+
+            # Flatten all keys for data storage
+            self.all_plot_keys = []
+            for group in self.plot_groups:
+                self.all_plot_keys.extend(group)
+
+            self.plt_data = {k: [] for k in self.all_plot_keys}
+            
             plt.ion()
-            self.fig, self.ax = plt.subplots(figsize=(8, 4))
-            self.fig.canvas.manager.set_window_title(f"Gripper Values - {self.data_type}")
+            num_plots = len(self.plot_groups)
+            self.fig, self.axs = plt.subplots(num_plots, 1, figsize=(10, 3 * num_plots), sharex=True)
+            
+            # Ensure axs is iterable even if there is only one plot
+            if num_plots == 1:
+                self.axs = [self.axs]
             
             self.lines = {}
-            colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
-            for i, k in enumerate(keys):
-                color = colors[i % len(colors)]
-                line, = self.ax.plot([], [], label=k, color=color, linewidth=1.5)
-                self.lines[k] = line
+            colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'orange', 'purple', 'brown']
+            
+            for i, group in enumerate(self.plot_groups):
+                ax = self.axs[i]
+                for j, k in enumerate(group):
+                    color = colors[j % len(colors)]
+                    line, = ax.plot([], [], label=k, color=color, linewidth=1.5)
+                    self.lines[k] = line
                 
-            # Add reference lines from config
-            if "gripper_config" in self.robot_cfg:
-                gc = self.robot_cfg["gripper_config"]
-                open_val = gc.get("gripper_value_open")
-                close_val = gc.get("gripper_value_close")
-                
-                if isinstance(open_val, (int, float)):
-                    self.ax.axhline(y=open_val, color='green', linestyle='--', label=f'Open ({open_val})', alpha=0.6)
-                if isinstance(close_val, (int, float)):
-                    self.ax.axhline(y=close_val, color='red', linestyle='--', label=f'Close ({close_val})', alpha=0.6)
+                # Add reference lines from config (only to the first plot or if specifically mapped? 
+                # For now, let's add to all plots if they seem to be gripper related or just keep simple)
+                # Let's only add gripper reference lines if "gripper" is in any of the keys in this group
+                if any("gripper" in k for k in group):
+                     if "gripper_config" in self.robot_cfg:
+                        gc = self.robot_cfg["gripper_config"]
+                        open_val = gc.get("gripper_value_open")
+                        close_val = gc.get("gripper_value_close")
+                        
+                        if isinstance(open_val, (int, float)):
+                            ax.axhline(y=open_val, color='green', linestyle='--', label=f'Open ({open_val})', alpha=0.6)
+                        if isinstance(close_val, (int, float)):
+                            ax.axhline(y=close_val, color='red', linestyle='--', label=f'Close ({close_val})', alpha=0.6)
 
-            self.ax.set_xlabel("Frame")
-            self.ax.set_ylabel("Value")
-            self.ax.legend(loc='upper right', fontsize='small')
-            self.ax.grid(True, linestyle=':', alpha=0.6)
+                ax.set_ylabel("Value")
+                ax.legend(loc='upper right', fontsize='small')
+                ax.grid(True, linestyle=':', alpha=0.6)
+            
+            self.axs[-1].set_xlabel("Frame")
             plt.tight_layout()
             
             self.plt_initialized = True
-            self.active_plt_keys = keys
         except Exception as e:
             print(f"Failed to initialize plot: {e}\n{traceback.format_exc()}")
             self.show_plt = False
@@ -337,13 +400,16 @@ class LerobotSimReplayer:
             frame_idx = len(self.plt_frames)
             self.plt_frames.append(frame_idx)
             
-            for k in self.active_plt_keys:
+            # Update data for all keys
+            for k in self.all_plot_keys:
                 val = self.data_frame.get(k, 0)
                 self.plt_data[k].append(val)
                 self.lines[k].set_data(self.plt_frames, self.plt_data[k])
             
-            self.ax.relim()
-            self.ax.autoscale_view()
+            # Rescale all axes
+            for ax in self.axs:
+                ax.relim()
+                ax.autoscale_view()
             
             self.fig.canvas.draw_idle()
             self.fig.canvas.flush_events()
@@ -357,30 +423,9 @@ class LerobotSimReplayer:
             print(">>> 数据回放结束")
             return False
 
-        # Update Plot
-        if self.show_plt and self.plt_keys:
-            if not self.plt_initialized:
-                # Check which keys are available in current data frame
-                # available = [k for k in self.plt_keys if k in self.data_frame]
-                # if available:
-                #     self._init_plot(available)
-                
-                # Trust user config: initialize all keys. Missing keys will be plotted as 0.
-                missing = [k for k in self.plt_keys if k not in self.data_frame]
-                if missing:
-                    print(f"Warning: Plot keys not found in data frame: {missing}. Will plot as 0.")
-                self._init_plot(self.plt_keys)
-            
-            if self.plt_initialized:
-                self._update_plot()
-
         # 1. 归一化 gripper 值
         if self.gripper_config.get("gripper", False):  # 安全获取 boolean
             self.map_gripper_val()
-
-        # print("=======================================================")
-        # print(self.gripper_names)
-        # print(self.data_frame)
 
         # 2. 执行修正函数 (直接调用预加载的方法)
         self.data_frame = self.fix_method(self.data_frame)
@@ -408,6 +453,47 @@ class LerobotSimReplayer:
 
         # 5. 更新物理状态
         mujoco.mj_forward(self.mjcf_model, self.mjcf_data)
+
+        # 6. 获取 EEF 位姿并添加到 data_frame
+        if self.eef_site_ids:
+             for name, site_id in self.eef_site_ids.items():
+                 # 获取位置
+                 pos = self.mjcf_data.site_xpos[site_id]
+                 # 获取旋转矩阵并转为欧拉角
+                 mat = self.mjcf_data.site_xmat[site_id].reshape(3, 3)
+                 euler = R.from_matrix(mat).as_euler("xyz", degrees=False)
+                 
+                 # Debug info
+                 # if np.allclose(pos, 0):
+                #  print(f"[DEBUG] Frame {self.episode_idx} | {name}: pos={pos}, euler={euler}")
+
+                 base_name = name.replace("_site", "")
+                 self.data_frame[f"{base_name}_pos_x_sim"] = pos[0]
+                 self.data_frame[f"{base_name}_pos_y_sim"] = pos[1]
+                 self.data_frame[f"{base_name}_pos_z_sim"] = pos[2]
+                 self.data_frame[f"{base_name}_ori_x_sim"] = euler[0]
+                 self.data_frame[f"{base_name}_ori_y_sim"] = euler[1]
+                 self.data_frame[f"{base_name}_ori_z_sim"] = euler[2]
+
+        # Update Plot (Moved to end of step to include simulated values)
+        if self.show_plt and self.plt_keys:
+            if not self.plt_initialized:
+                # Trust user config: initialize all keys. Missing keys will be plotted as 0.
+                if isinstance(self.plt_keys[0], str):
+                    missing = [k for k in self.plt_keys if k not in self.data_frame]
+                else:
+                    # Flatten keys for check
+                    all_keys = []
+                    for group in self.plt_keys:
+                        all_keys.extend(group)
+                    missing = [k for k in all_keys if k not in self.data_frame]
+
+                if missing:
+                    print(f"Warning: Plot keys not found in data frame: {missing}. Will plot as 0.")
+                self._init_plot(self.plt_keys)
+            
+            if self.plt_initialized:
+                self._update_plot()
 
         # 如果开启了界面，同步界面
         if self.mjcf_viewer is not None:

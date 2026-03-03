@@ -86,5 +86,16 @@ mult_sensor:
     gripper_value_close: 0.0
 
 show_plt: 
-- right_gripper_open
-- left_gripper_open
+  # 第一张图：夹爪开合度
+  - 
+    - left_gripper_open
+    - right_gripper_open
+  # 第二张图：左手末端位置对比
+  - 
+    - left_eef_pos_x_m
+    - left_eef_pos_y_m
+    - left_eef_pos_z_m
+    - right_eef_pos_x_m
+    - right_eef_pos_y_m
+    - right_eef_pos_z_m
+

@@ -2,8 +2,8 @@
 SimReplayNewServer is a task server that handles simulation replay tasks for the Robocoin dataset.
 
 python scripts/sim_replay_new/sim_replay_server.py \
-    --device_model Airbot_MMK2 \
-    --device_model_version 5d_arms \
+    --device_model Agilex_Cobot_Magic \
+    --device_model_version default_version \
     --db_file_path db/postgresql_config.yaml \
     --sim_replay_config_path scripts/sim_replay_new/configs/sim_replay_map.yaml
 """
