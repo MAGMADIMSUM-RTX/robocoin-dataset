@@ -59,6 +59,9 @@ class DatasetDB(Base):
     converted_episodes = Column(Integer, nullable=True, default=0)
     skipped_episodes = Column(Integer, nullable=True, default=0)
     convert_err_msg = Column(Text, nullable=True)
+    convert_start_timestamp = Column(String(255), nullable=True)
+    convert_end_timestamp = Column(String(255), nullable=True)
+    convert_duration_seconds = Column(Float, nullable=True)
 
 
     # Episode质量检测

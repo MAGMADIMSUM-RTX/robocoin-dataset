@@ -1,5 +1,5 @@
 import logging
-
+from datetime import datetime  # 仅保留datetime处理时间
 # import uuid
 from pathlib import Path
 
@@ -96,6 +96,45 @@ class LeFormatConverterTaskServer(TaskServer):
             raise
         return
 
+    # ✅ 核心工具函数：生成「2026-03-03 12:40」格式字符串（到分钟）+ 可序列化的时间戳
+    def _get_formatted_time(self) -> tuple[str, float]:
+        """
+        生成：
+        - 易读字符串（2026-03-03 12:40，到分钟）
+        - 时间戳（float，用于计算耗时，可JSON序列化）
+        返回：(格式化字符串, 时间戳)
+        """
+        now = datetime.now()
+        # 格式化为「2026-03-03 12:40」（到分钟，无秒）
+        formatted_str = now.strftime("%Y-%m-%d %H:%M")
+        # 生成时间戳（float，可JSON序列化）
+        timestamp = datetime.timestamp(now)
+        return formatted_str, timestamp
+
+    # ✅ 辅助函数：解析易读字符串为datetime（用于计算耗时）
+    def _parse_time_str_to_datetime(self, time_str: str) -> datetime:
+        """
+        将「2026-03-03 12:40」字符串转回datetime对象
+        """
+        try:
+            # 解析到分钟的格式
+            return datetime.strptime(time_str, "%Y-%m-%d %H:%M")
+        except ValueError:
+            # 兼容你的原始需求格式（2026年3月3日12点40分）
+            import re
+            pattern = r"(\d+)年(\d+)月(\d+)日(\d+)点(\d+)分"
+            match = re.match(pattern, time_str)
+            if not match:
+                raise ValueError(f"无法解析时间字符串：{time_str}")
+            
+            year = int(match.group(1))
+            month = int(match.group(2))
+            day = int(match.group(3))
+            hour = int(match.group(4))
+            minute = int(match.group(5))
+            
+            return datetime(year, month, day, hour, minute)
+
     def _get_converter_class_name(self, device_model: str) -> str:
         if device_model not in self.converter_factory_config:
             raise ValueError(f"Device model {device_model} not found in factory config.")
@@ -163,6 +202,9 @@ class LeFormatConverterTaskServer(TaskServer):
         return "lerobot_format_convert"
 
     def generate_task_content(self) -> dict | None:
+        # ✅ 生成易读时间字符串 + 可序列化的时间戳（替代datetime对象）
+        convert_start_str, convert_start_ts = self._get_formatted_time()
+        
         with self.db.with_session() as session:
             if self.is_test:
                 query = session.query(DatasetDB).filter(
@@ -217,7 +259,11 @@ class LeFormatConverterTaskServer(TaskServer):
                 Path(self.convert_root_path) / f"{item.dataset_name}_{item.dataset_name_id}"
             )
             item.data_path = str(Path(item.yaml_file_path).parent)
+            
+            # ✅ 核心：直接覆盖原有时间戳字段为易读字符串（2026-03-03 12:40）
+            item.convert_start_timestamp = convert_start_str  # 覆盖旧时间戳字段
             session.commit()
+            
             converter_module_path, converter_class_name, converter_config = (
                 self._get_converter_module_class_config(
                     device_model=item.device_model,
@@ -228,7 +274,8 @@ class LeFormatConverterTaskServer(TaskServer):
             client_log_path = Path(self.convert_root_path) / "client_logs" / leformat_name
             repo_id = f"{ROBOCOIN_PLATFORM}/{item.dataset_name}_{item.dataset_name_id}"
 
-            return {
+            # ✅ 修复：移除datetime对象，仅传递可序列化的字段
+            task_content = {
                 DATASET_UUID: item.dataset_uuid,
                 DATASET_NAME: f"{item.dataset_name}_{item.dataset_name_id}",
                 LEFORMAT_PATH: item.convert_path,
@@ -245,7 +292,16 @@ class LeFormatConverterTaskServer(TaskServer):
                 CONVERTER_LOG_NAME: leformat_name,
                 IS_TEST: self.is_test,
                 AUTO_REENCODE: self.auto_reencode,
+                "convert_start_str": convert_start_str,  # 易读字符串
+                "convert_start_ts": convert_start_ts,    # 时间戳（float，可JSON序列化）
+                "dataset_uuid": item.dataset_uuid
             }
+            
+            # ✅ 日志输出易读时间
+            self.logger.info(
+                f"开始转换数据集 {task_content[DATASET_NAME]} (UUID: {item.dataset_uuid}), 开始时间: {convert_start_str}"
+            )
+            return task_content
 
     def _normalize_gripper_open(self, dataset_path: str):
         """
@@ -275,48 +331,70 @@ class LeFormatConverterTaskServer(TaskServer):
             self.logger.error(f"执行夹爪归一化失败: {e}", exc_info=True)
 
     def handle_task_result(self, task_content: dict, task_result_content: dict) -> None:
+        # ✅ 生成结束时间（易读字符串 + 可序列化时间戳）
+        convert_end_str, convert_end_ts = self._get_formatted_time()
+        # 获取开始时间相关数据
+        convert_start_str = task_content.get("convert_start_str")
+        convert_start_ts = task_content.get("convert_start_ts")
+        
+        # ✅ 计算耗时（基于时间戳，精准且可序列化）
+        if convert_start_ts:
+            convert_duration = convert_end_ts - convert_start_ts
+        else:
+            # 降级方案：从字符串解析datetime计算
+            try:
+                convert_start_dt = self._parse_time_str_to_datetime(convert_start_str)
+                convert_end_dt = self._parse_time_str_to_datetime(convert_end_str)
+                convert_duration = (convert_end_dt - convert_start_dt).total_seconds()
+            except:
+                convert_duration = 0.0
+        
         ds_uuid = task_content.get(DATASET_UUID)
-        dataset_path = task_content.get(LEFORMAT_PATH)  # 获取转换后的数据集路径
+        dataset_name = task_content.get(DATASET_NAME, "未知数据集")
+        dataset_path = task_content.get(LEFORMAT_PATH)
 
         task_status = task_result_content.get(TASK_RESULT_STATUS)
         task_status_msg = task_result_content.get(ERR_MSG)
 
-        # 🔧 修复：先获取TASK_RESULT_CONTENT，实际数据在这里面
         actual_result = task_result_content.get(TASK_RESULT_CONTENT, {})
-        
-        # 🆕 提取转换统计信息（从actual_result中获取）
         total_episodes = actual_result.get("total_episodes")
         converted_episodes = actual_result.get("converted_episodes")
         skipped_episodes = actual_result.get("skipped_episodes")
 
         convert_status = TaskStatus.COMPLETED if task_status == TASK_SUCCESS else TaskStatus.FAILED
 
-        # 🆕 合并为单个session，保证原子性
         with self.db.with_session() as session:
-            # 查询 device_model_version
             item = session.query(DatasetDB).filter(DatasetDB.dataset_uuid == ds_uuid).first()
             if item is None:
                 self.logger.error(f"❌ Dataset {ds_uuid} not found in dataset DB, cannot update status!")
-                return  # 🔧 修复：找不到数据集时直接返回，避免后续错误
+                return
 
-            # 在同一个session中更新转换状态
+            # ✅ 核心：覆盖原有结束时间戳字段为易读字符串
             item.convert_err_msg = task_status_msg
             item.converted_episodes = converted_episodes
             item.total_episodes = total_episodes
             item.skipped_episodes = skipped_episodes
+            item.convert_end_timestamp = convert_end_str  # 覆盖旧结束时间戳字段
+            item.convert_duration_seconds = convert_duration  # 耗时（秒）
             if self.is_test:
                 item.convert_test_status = convert_status
             else:
                 item.convert_status = convert_status
             session.commit()
+            
+            # ✅ 日志格式化
+            duration_str = f"{convert_duration:.2f} 秒"
+            if convert_duration > 60:
+                duration_str += f" ({convert_duration/60:.2f} 分钟)"
+                
             self.logger.info(
-                f"Upsert {ds_uuid} convert status to {convert_status}, "
-                f"device_model={item.device_model}, device_model_version={item.device_model_version}, "
-                f"total={total_episodes}, converted={converted_episodes}, skipped={skipped_episodes}, "
-                f"update_message: {task_status_msg}"
+                f"✅ 数据集 {dataset_name} (UUID: {ds_uuid}) 转换完成！"
+                f"开始时间: {convert_start_str}, 结束时间: {convert_end_str}, "
+                f"状态: {convert_status}, 耗时: {duration_str}, "
+                f"总片段数: {total_episodes}, 成功转换: {converted_episodes}, 跳过: {skipped_episodes}"
             )
         
-        # ✨ 新增：任务成功完成后自动执行夹爪归一化
+        # 夹爪归一化 + 数据校验
         if task_status == TASK_SUCCESS and dataset_path:
             self._normalize_gripper_open(dataset_path)
 
@@ -328,7 +406,6 @@ class LeFormatConverterTaskServer(TaskServer):
                 if is_valid:
                     self.logger.info(f"✅ 数据集 {dataset_path} 后置校验完美通过！")
                 else:
-                    # 💡 强提醒：此时数据库已经是 COMPLETED，需要打印醒目的警告
                     self.logger.error(f"❌ 数据集 {dataset_path} 校验未通过！注意：数据库中该任务状态仍为 COMPLETED，请根据日志手动核查脏数据。")
                     
             except Exception as e:
