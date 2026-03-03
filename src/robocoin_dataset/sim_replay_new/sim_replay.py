@@ -1,5 +1,11 @@
 import argparse
+import logging
 import os
+
+# Suppress Rerun warnings
+os.environ["RERUN_LOG"] = "error"
+logging.getLogger("rerun").setLevel(logging.ERROR)
+
 import sys
 import time
 import traceback

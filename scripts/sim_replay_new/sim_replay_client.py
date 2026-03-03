@@ -1,6 +1,12 @@
 import argparse
 import asyncio
 import logging
+import os
+
+# Suppress Rerun warnings
+os.environ["RERUN_LOG"] = "error"
+logging.getLogger("rerun").setLevel(logging.ERROR)
+
 import sys
 import random
 import subprocess
