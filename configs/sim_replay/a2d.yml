@@ -2,6 +2,10 @@ default_version:
   sim:
     xml_path: "configs/sim_replay/mjcfs/A2D/G1_roh_roh_with_sites.xml"  # 仿真模型路径
 
+    # eef_name:
+    #   - left_eef_site
+    #   - right_eef_site
+
     # module_file: config.sim_replay.agilex
     # function: get_mjcf_gripper_joint_data
 
