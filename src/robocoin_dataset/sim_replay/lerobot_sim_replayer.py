@@ -170,11 +170,15 @@ class LerobotSimReplayer:
         if not meta_file_path.exists():
             raise Exception(f"Meta file not found: {meta_file_path}")
 
+        print(f"DEBUG: Reading meta file: {meta_file_path}")
         with open(meta_file_path) as f:
             json_data = json.load(f)
             features = json_data.get("features", None)
             if features is None:
                 raise Exception("No features found in info.json")
+            print(f"DEBUG: Features found: {list(features.keys())}")
+            if "gripper_open_scale_state" in features:
+                 print(f"DEBUG: gripper_open_scale_state: {features['gripper_open_scale_state']}")
 
             value = features.get("observation.state", None)
             if value is None:
@@ -190,6 +194,18 @@ class LerobotSimReplayer:
             meta_action_names = value.get("names", None)
             if meta_action_names is None:
                 raise Exception("No action names found in info.json")
+
+            value = features.get("gripper_open_scale_state", None)
+            if value:
+                meta_gripper_state_names = value.get("names", [])
+            else:
+                meta_gripper_state_names = []
+
+            value = features.get("gripper_open_scale_action", None)
+            if value:
+                meta_gripper_action_names = value.get("names", [])
+            else:
+                meta_gripper_action_names = []
 
         exist_flags = [
             state_name in meta_state_names for state_name in self.state_arm_joint_lerobot_names
@@ -214,25 +230,25 @@ class LerobotSimReplayer:
             )
 
         exist_flags = [
-            state_name in meta_state_names for state_name in self.state_gripper_lerobot_names
+            state_name in meta_gripper_state_names for state_name in self.state_gripper_lerobot_names
         ]
         non_exist_names = [
             self.state_gripper_lerobot_names[i] for i, flag in enumerate(exist_flags) if not flag
         ]
         if not all(exist_flags):
             raise Exception(
-                f"Given State Lerobot gripper joint name: {non_exist_names} not found in info.json, State names: {meta_state_names}"
+                f"Given State Lerobot gripper joint name: {non_exist_names} not found in info.json, Gripper State names: {meta_gripper_state_names}"
             )
 
         exist_flags = [
-            action_name in meta_action_names for action_name in self.action_gripper_lerobot_names
+            action_name in meta_gripper_action_names for action_name in self.action_gripper_lerobot_names
         ]
         non_exist_names = [
             self.action_gripper_lerobot_names[i] for i, flag in enumerate(exist_flags) if not flag
         ]
         if not all(exist_flags):
             raise Exception(
-                f"Given Action Lerobot gripper joint name: {non_exist_names} not found in info.json, Action names: {meta_action_names}"
+                f"Given Action Lerobot gripper joint name: {non_exist_names} not found in info.json, Gripper Action names: {meta_gripper_action_names}"
             )
 
         self.state_arm_joint_lerobot_ids = [
@@ -244,11 +260,11 @@ class LerobotSimReplayer:
         ]
 
         self.state_gripper_lerobot_ids = [
-            meta_state_names.index(name) for name in self.state_gripper_lerobot_names
+            meta_gripper_state_names.index(name) for name in self.state_gripper_lerobot_names
         ]
 
         self.action_gripper_lerobot_ids = [
-            meta_action_names.index(name) for name in self.action_gripper_lerobot_names
+            meta_gripper_action_names.index(name) for name in self.action_gripper_lerobot_names
         ]
 
         self.parquet_files = get_parquet_files(self.repo_path, "state_action")
@@ -296,12 +312,20 @@ class LerobotSimReplayer:
             lerbot_arm_joint_ids = self.state_arm_joint_lerobot_ids
             leroot_gripper_ids = self.state_gripper_lerobot_ids
             data = df["observation.state"].to_list()
+            if "gripper_open_scale_state" in df.columns:
+                gripper_data = df["gripper_open_scale_state"].to_list()
+            else:
+                gripper_data = data
         else:
             mjcf_arm_joint_addrs = self.action_arm_joint_mjcf_addrs
             mjcf_gripper_joint_addrs = self.action_gripper_joint_mjcf_addrs
             lerbot_arm_joint_ids = self.action_arm_joint_lerobot_ids
             leroot_gripper_ids = self.action_gripper_lerobot_ids
             data = df["action"].to_list()
+            if "gripper_open_scale_action" in df.columns:
+                gripper_data = df["gripper_open_scale_action"].to_list()
+            else:
+                gripper_data = data
 
         # 根据 is_eef 参数决定使用哪个 site
         site_ids_to_use = (
@@ -313,7 +337,7 @@ class LerobotSimReplayer:
         try:
             for i in range(len(data)):
                 lerobot_arm_joint_values = data[i][lerbot_arm_joint_ids]
-                lerobot_gripper_data = data[i][leroot_gripper_ids]
+                lerobot_gripper_data = gripper_data[i][leroot_gripper_ids]
                 for mjcf_addr, lerobot_value in zip(mjcf_arm_joint_addrs, lerobot_arm_joint_values):
                     self.mjcf_data.qpos[mjcf_addr] = lerobot_value
 
@@ -390,12 +414,20 @@ class LerobotSimReplayer:
             lerbot_arm_joint_ids = self.state_arm_joint_lerobot_ids
             leroot_gripper_ids = self.state_gripper_lerobot_ids
             data = df["observation.state"].to_list()
+            if "gripper_open_scale_state" in df.columns:
+                gripper_data = df["gripper_open_scale_state"].to_list()
+            else:
+                gripper_data = data
         else:
             mjcf_arm_joint_addrs = self.action_arm_joint_mjcf_addrs
             mjcf_gripper_joint_addrs = self.action_gripper_joint_mjcf_addrs
             lerbot_arm_joint_ids = self.action_arm_joint_lerobot_ids
             leroot_gripper_ids = self.action_gripper_lerobot_ids
             data = df["action"].to_list()
+            if "gripper_open_scale_action" in df.columns:
+                gripper_data = df["gripper_open_scale_action"].to_list()
+            else:
+                gripper_data = data
 
         gripper_history = []
         fig, ax, lines = None, None, []
@@ -423,7 +455,7 @@ class LerobotSimReplayer:
             for i in range(len(data)):
                 frame_start = time.perf_counter()
                 lerobot_arm_joint_values = data[i][lerbot_arm_joint_ids]
-                lerobot_gripper_data = data[i][leroot_gripper_ids]
+                lerobot_gripper_data = gripper_data[i][leroot_gripper_ids]
                 for mjcf_addr, lerobot_value in zip(mjcf_arm_joint_addrs, lerobot_arm_joint_values):
                     self.mjcf_data.qpos[mjcf_addr] = lerobot_value
 

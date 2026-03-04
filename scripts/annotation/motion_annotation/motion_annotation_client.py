@@ -3,6 +3,19 @@ import asyncio
 import logging
 import multiprocessing as mp
 
+
+import sys
+from pathlib import Path
+# Add project root and src to sys.path
+current_file = Path(__file__).resolve()
+project_root = current_file.parents[2]
+src_path = project_root / "src"
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
+
 from robocoin_dataset.annotation.motion_annotation.motion_annotation_data_post_process import (
     MotionAnnotationDataPostProcessClient,
 )

@@ -76,10 +76,15 @@ class AgilexCobotDecoupledMagicProcessor(StateActionDataPostProcessorBase):
         #     processed_state = self._swap_left_right(processed_state)
         #     processed_action = self._swap_left_right(processed_action)
 
-        return {
+        result = {
             "observation.state": processed_state,
             "action": processed_action,
         }
+        if "gripper_open_scale_state" in ori_data:
+            result["gripper_open_scale_state"] = ori_data["gripper_open_scale_state"]
+        if "gripper_open_scale_action" in ori_data:
+            result["gripper_open_scale_action"] = ori_data["gripper_open_scale_action"]
+        return result
 
     # 该方法将ori_state_data进行后处理，返回结果为后处理后的数据
     def process_episode_state_data(self, ori_state_data: np.ndarray) -> np.ndarray:
@@ -155,10 +160,15 @@ class AgilexCobotDecoupledRealsenseMagicProcessor(StateActionDataPostProcessorBa
         #     processed_state = self._swap_left_right(processed_state)
         #     processed_action = self._swap_left_right(processed_action)
 
-        return {
+        result = {
             "observation.state": processed_state,
             "action": processed_action,
         }
+        if "gripper_open_scale_state" in ori_data:
+            result["gripper_open_scale_state"] = ori_data["gripper_open_scale_state"]
+        if "gripper_open_scale_action" in ori_data:
+            result["gripper_open_scale_action"] = ori_data["gripper_open_scale_action"]
+        return result
 
     # 该方法将ori_state_data进行后处理，返回结果为后处理后的数据
     def process_episode_state_data(self, ori_state_data: np.ndarray) -> np.ndarray:
@@ -198,7 +208,12 @@ class AgilexCobotDecoupledMagicH5Mp4Processor(StateActionDataPostProcessorBase):
         # action 特征在本 processor 中与 state 特征长度一致，直接复制
         processed_action = self.process_episode_state_data(ori_data["action"])
 
-        return {"observation.state": processed_state, "action": processed_action}
+        result = {"observation.state": processed_state, "action": processed_action}
+        if "gripper_open_scale_state" in ori_data:
+            result["gripper_open_scale_state"] = ori_data["gripper_open_scale_state"]
+        if "gripper_open_scale_action" in ori_data:
+            result["gripper_open_scale_action"] = ori_data["gripper_open_scale_action"]
+        return result
 
     # 该方法返回处理后的state数据名称
     def get_modified_feature_names(self):
@@ -282,10 +297,15 @@ class AgilexCobotDecoupledMagicMultSensorProcessor(StateActionDataPostProcessorB
         processed_state = self._smooth_joint_data(processed_state)
         processed_action = self._smooth_joint_data(processed_action)
 
-        return {
+        result = {
             "observation.state": processed_state,
             "action": processed_action,
         }
+        if "gripper_open_scale_state" in ori_data:
+            result["gripper_open_scale_state"] = ori_data["gripper_open_scale_state"]
+        if "gripper_open_scale_action" in ori_data:
+            result["gripper_open_scale_action"] = ori_data["gripper_open_scale_action"]
+        return result
 
     # 该方法将ori_state_data进行后处理，返回结果为后处理后的数据
     def process_episode_state_data(self, ori_state_data: np.ndarray) -> np.ndarray:

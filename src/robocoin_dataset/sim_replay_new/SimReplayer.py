@@ -1,4 +1,5 @@
 import argparse
+import atexit
 import importlib
 import json
 import os
@@ -145,6 +146,10 @@ class LerobotSimReplayer:
 
         # 6. Initialize Plotting
         self.show_plt = show_plt
+        if self.show_plt:
+            # Register cleanup on exit to avoid matplotlib/tkinter errors
+            atexit.register(self.close)
+
         self.plt_keys = self.full_config.get("show_plt", [])
         if self.plt_keys is None:
             self.plt_keys = []
@@ -519,3 +524,40 @@ class LerobotSimReplayer:
         if self.mjcf_viewer is not None:
             self.mjcf_viewer.close()
             self.mjcf_viewer = None
+            
+    def close(self) -> None:
+        """Explicitly clean up resources including viewer and plots"""
+        self.close_viewer()
+        
+        if self.plt_initialized:
+            try:
+                # Check if matplotlib is still available
+                import sys
+                if 'matplotlib.pyplot' in sys.modules:
+                    import matplotlib.pyplot as plt
+                    # Try to get Gcf helper to manually remove figure if needed
+                    from matplotlib._pylab_helpers import Gcf
+                    
+                    if self.fig:
+                        # Try standard close first
+                        try:
+                            plt.close(self.fig)
+                        except Exception:
+                            # If standard close fails (e.g. RuntimeError), try to force remove from Gcf
+                            # so atexit doesn't try again and crash
+                            try:
+                                if Gcf and hasattr(Gcf, 'figs') and self.fig.number in Gcf.figs:
+                                    del Gcf.figs[self.fig.number]
+                            except Exception:
+                                pass
+                                
+                    self.plt_initialized = False
+            except Exception:
+                # Ignore errors during cleanup
+                pass
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass

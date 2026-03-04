@@ -1,7 +1,11 @@
 import argparse
 import asyncio
 import logging
+import sys
 from pathlib import Path
+
+# Add project root to sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 
 from robocoin_dataset.annotation.motion_annotation.motion_annotation_data_post_process import (
     MotionAnnotationDataPostProcessClient,
@@ -58,7 +62,7 @@ if __name__ == "__main__":
 
 """usage:
 # realman_rmc_aidal
-python scripts/annotation/motion_annotation/motion_annotation_client.py \
+python scripts/motion_annotation/motion_annotation_client.py \
     --host=127.0.0.1 \
     --port=8766 \
     --heartbeat-interval=10.0 \

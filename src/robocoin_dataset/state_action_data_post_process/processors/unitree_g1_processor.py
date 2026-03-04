@@ -63,5 +63,13 @@ class UnitreeG1ThreeFingerOutProcessor(StateActionDataPostProcessorBase):
         new_state = state.copy()
         new_action = action.copy()
         
-        return {"observation.state": new_state, "action": new_action}
+        result = {"observation.state": new_state, "action": new_action}
+        
+        if "gripper_open_scale_state" in ori_data:
+             result["gripper_open_scale_state"] = ori_data["gripper_open_scale_state"]
+             
+        if "gripper_open_scale_action" in ori_data:
+             result["gripper_open_scale_action"] = ori_data["gripper_open_scale_action"]
+             
+        return result
 

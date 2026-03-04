@@ -14,6 +14,8 @@ class StateActionDataPostProcessorBase(DataPostProcessorBase):
             data_feature_keys={
                 "observation.state",
                 "action",
+                "gripper_open_scale_state",
+                "gripper_open_scale_action",
             },
         )
         self.convert_path = Path(convert_path)
@@ -123,25 +125,55 @@ class StateActionDataPostProcessorBase(DataPostProcessorBase):
         if not isinstance(json_dict["features"]["action"]["names"], list):
             raise ValueError("value of action.names is not list[str]")
 
-        return {
+        result = {
             "observation.state": json_dict["features"]["observation.state"]["names"],
             "action": json_dict["features"]["action"]["names"],
         }
 
+        if "gripper_open_scale_state" in json_dict["features"]:
+            result["gripper_open_scale_state"] = json_dict["features"][
+                "gripper_open_scale_state"
+            ]["names"]
+
+        if "gripper_open_scale_action" in json_dict["features"]:
+            result["gripper_open_scale_action"] = json_dict["features"][
+                "gripper_open_scale_action"
+            ]["names"]
+
+        return result
+
     def process_episode_data(self, ori_data: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-        return {
+        result = {
             "observation.state": self.process_episode_state_data(ori_data["observation.state"]),
             "action": self.process_episode_action_data(ori_data["action"]),
         }
+        if "gripper_open_scale_state" in ori_data and ori_data["gripper_open_scale_state"] is not None:
+            result["gripper_open_scale_state"] = self.process_episode_gripper_state_data(
+                ori_data["gripper_open_scale_state"]
+            )
+        if "gripper_open_scale_action" in ori_data and ori_data["gripper_open_scale_action"] is not None:
+            result["gripper_open_scale_action"] = self.process_episode_gripper_action_data(
+                ori_data["gripper_open_scale_action"]
+            )
+        return result
 
     def get_modified_feature_names(self) -> dict[str, list[str]]:
         state_names = self.get_modified_state_feature_names()
         action_names = self.get_modified_action_feature_names()
 
-        return {
+        result = {
             "observation.state": state_names,
             "action": action_names,
         }
+
+        ori_features = self.get_ori_state_action_feature_names()
+        if "gripper_open_scale_state" in ori_features:
+            result["gripper_open_scale_state"] = self.get_modified_gripper_state_feature_names()
+
+        if "gripper_open_scale_action" in ori_features:
+            result["gripper_open_scale_action"] = self.get_modified_gripper_action_feature_names()
+
+        return result
 
     # 在这里填入修改后的state特征名称列表，如果没有修改，则不需要重写函数
     def get_modified_state_feature_names(self) -> list[str]:
@@ -150,6 +182,12 @@ class StateActionDataPostProcessorBase(DataPostProcessorBase):
     # 在这里填入修改后的action特征名称列表，如果没有修改，则不需要重写函数
     def get_modified_action_feature_names(self) -> list[str]:
         return self.get_ori_state_action_feature_names()["action"]
+
+    def get_modified_gripper_state_feature_names(self) -> list[str]:
+        return self.get_ori_state_action_feature_names().get("gripper_open_scale_state", [])
+
+    def get_modified_gripper_action_feature_names(self) -> list[str]:
+        return self.get_ori_state_action_feature_names().get("gripper_open_scale_action", [])
 
     # 将处理episode数据的准备工作放在这里
     def prepare_processing(self) -> None:
@@ -162,3 +200,11 @@ class StateActionDataPostProcessorBase(DataPostProcessorBase):
     # 该方法将ori_action_data进行后处理，返回结果为后处理后的数据
     def process_episode_action_data(self, ori_action_data: np.ndarray) -> np.ndarray:
         return ori_action_data.copy()
+
+    def process_episode_gripper_state_data(self, ori_gripper_state_data: np.ndarray) -> np.ndarray:
+        return ori_gripper_state_data.copy()
+
+    def process_episode_gripper_action_data(
+        self, ori_gripper_action_data: np.ndarray
+    ) -> np.ndarray:
+        return ori_gripper_action_data.copy()
