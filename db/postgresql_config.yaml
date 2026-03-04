@@ -1,10 +1,10 @@
 # postgresql_config.yaml
 postgresql:
-  user: "user"        # 替换为你的数据库用户名
-  password: "123456"    # 替换为你的数据库密码
+  user: "robocoin_server"        # 替换为你的数据库用户名
+  password: "7sK9$pR2!g"    # 替换为你的数据库密码
   host: "localhost"            # 数据库主机地址
   port: 5432                  # 数据库端口
-  database: "datasets_test1"  # 数据库名
+  database: "robocoin_datasets_test"  # 数据库名
   # 可选：添加其他连接参数
   pool_size: 10
   max_overflow: 20

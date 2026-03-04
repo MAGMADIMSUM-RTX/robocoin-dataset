@@ -1,6 +1,7 @@
 import json
 import logging
 import traceback
+import shutil  # 新增：用于删除文件夹
 from pathlib import Path
 
 import pandas as pd
@@ -200,7 +201,7 @@ def merge_dataset_info_files(
     merged_info = _fill_dtype_and_shape(merged_info, merged_parquet_paths[0])
 
     with open(merged_info_path, "w") as f:
-        json.dump(merged_info, f)
+        json.dump(merged_info, f, indent=4, ensure_ascii=False, sort_keys=False)
     return merged_info
 
 
@@ -247,6 +248,53 @@ def merge_dataset_stats_jsonl_files(
         patch_stats_files.append(patch_stats_file)
 
     _merge_jsonl_files(ori_stats_file, patch_stats_files, merged_stats_file, ep_num=ep_num)
+
+# ========== 新增：清理函数 ==========
+def clean_merge_temp_files(root_dir: str | Path, logger: logging.Logger | None = None) -> None:
+    """
+    合并完成后清理指定的临时文件和文件夹
+    :param root_dir: 数据集根目录
+    :param logger: 日志对象
+    """
+    logger = logger or logging.getLogger(__name__)
+    root_dir = Path(root_dir).expanduser().absolute()
+    meta_dir = root_dir / "meta"  # meta文件夹路径
+    
+    # 1. 定义需要删除的文件夹
+    folders_to_delete = [
+        root_dir / "motion_annotation_data",
+        root_dir / "state_action_data"
+    ]
+    
+    # 2. 定义需要删除的文件（meta文件夹下）
+    files_to_delete = [
+        meta_dir / "motion_annotation_episodes_stats.jsonl",
+        meta_dir / "motion_annotation_info.json",
+        meta_dir / "state_action_episodes_stats.jsonl",
+        meta_dir / "state_action_info.json"
+    ]
+    
+    # 3. 删除文件夹
+    for folder in folders_to_delete:
+        if folder.exists() and folder.is_dir():
+            try:
+                shutil.rmtree(folder)
+                logger.info(f"成功删除文件夹: {folder}")
+            except Exception as e:
+                logger.error(f"删除文件夹失败 {folder}: {str(e)}")
+        else:
+            logger.debug(f"文件夹不存在，跳过删除: {folder}")
+    
+    # 4. 删除文件
+    for file in files_to_delete:
+        if file.exists() and file.is_file():
+            try:
+                file.unlink()
+                logger.info(f"成功删除文件: {file}")
+            except Exception as e:
+                logger.error(f"删除文件失败 {file}: {str(e)}")
+        else:
+            logger.debug(f"文件不存在，跳过删除: {file}")
 
 
 def merge_dataset_data(root_dir: str | Path, patch_features: list[str], merge_feature: str) -> None:
@@ -427,6 +475,8 @@ class DataMerger:
             self.data_merge_config.patch_features,
             self.data_merge_config.merge_feature,
         )
+        # ========== 调用清理函数 ==========
+        clean_merge_temp_files(convert_path, self.logger)
 
     def merge_data_one_dataset(self) -> None:
         with self.db.with_session() as session:
@@ -557,7 +607,8 @@ class DataMergerClient(TaskClient):
                 patch_features=self.data_merge_config.patch_features,
                 merge_feature=self.data_merge_config.merge_feature,
             )
-
+            # ========== 客户端也调用清理函数 ==========
+            clean_merge_temp_files(repo_path, self.logger)
             return {}
         except Exception as e:
             # 异常日志中也使用 qced_repo_gen_path

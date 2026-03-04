@@ -251,7 +251,7 @@ class LerobotSimReplayer:
                 self.data_frame[name] = sim_val
 
     def get_frame_data(self):
-        """读取文件并建立生成器"""
+        """读取文件并建立生成器，新增gripper_open_scale相关字段"""
         sub_dir = "data" if self.data_source == "data" else "state_action_data"
         
         parquet_file_path = (
@@ -272,7 +272,6 @@ class LerobotSimReplayer:
         df = pd.read_parquet(str(parquet_file_path))
 
         info_file_path = self.repo_path / "meta" / "info.json" if self.data_source == "data" else self.repo_path / "meta" / "state_action_info.json"
-        # info_file_path = self.repo_path / "meta" / "info.json"
         with open(info_file_path, "r") as f:
             info = json.load(f)
 
@@ -294,8 +293,26 @@ class LerobotSimReplayer:
         
         for key in keys_to_load:
             if key in df.columns:
-                names = info["features"][key]["names"]
+                names = info["features"][key]["names"].copy()  # 复制原名称列表
                 data_list = df[key].to_list()
+                
+                # ===== 核心修改：新增gripper_open_scale字段 =====
+                # 1. 确定对应的gripper_open_scale键（state对应state，action对应action）
+                gripper_key = "gripper_open_scale_state" if key == "observation.state" else "gripper_open_scale_action"
+                # 2. 如果存在该字段，合并名称和数据
+                if gripper_key in info["features"] and gripper_key in df.columns:
+                    # 合并名称
+                    names.extend(info["features"][gripper_key]["names"])
+                    # 合并数据：将gripper_open_scale的每一行数据追加到原数据后
+                    gripper_data_list = df[gripper_key].to_list()
+                    # 确保两个数据列表长度一致
+                    if len(data_list) == len(gripper_data_list):
+                        for i in range(len(data_list)):
+                            # 把gripper的数值追加到原数据的列表中
+                            data_list[i] = list(data_list[i]) + list(gripper_data_list[i])
+                    else:
+                        print(f"Warning: {key} and {gripper_key} have different lengths, skip merging")
+                
                 if length is None:
                     length = len(data_list)
                 
@@ -346,9 +363,8 @@ class LerobotSimReplayer:
                 else:
                     self.plot_groups = key_groups
             else:
-                 print(f"Invalid plot config: {key_groups}")
-                 return
-
+                print(f"Invalid plot config: {key_groups}")
+                return
             # Flatten all keys for data storage
             self.all_plot_keys = []
             for group in self.plot_groups:
@@ -359,7 +375,7 @@ class LerobotSimReplayer:
             plt.ion()
             num_plots = len(self.plot_groups)
             self.fig, self.axs = plt.subplots(num_plots, 1, figsize=(10, 3 * num_plots), sharex=True)
-            
+            #self.fig.suptitle("Robot Replay Data Monitoring", fontsize=16, fontweight='bold', y=0.98)
             # Ensure axs is iterable even if there is only one plot
             if num_plots == 1:
                 self.axs = [self.axs]

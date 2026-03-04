@@ -13,6 +13,7 @@ import subprocess
 import time
 import traceback
 from pathlib import Path
+import json
 
 # Add project root and src to sys.path
 current_file = Path(__file__).resolve()
@@ -119,25 +120,43 @@ class SimReplayNewClient(TaskClient):
         config_name = task_data.get(CONFIG_NAME)
         device_model_version = task_data.get(DEVICE_MODEL_VERSION)
         total_episodes = task_data.get(TOTAL_EPISODES, 0)
+        if qced_repo_gen_path:
+            # 1. 将路径转为 Path 对象，方便拼接和判断
+            repo_path = Path(qced_repo_gen_path)
+            # 2. 拼接 meta/info.json 路径
+            info_json_path = repo_path / "meta" / "info.json"
+            
+            # 3. 检查文件是否存在
+            if info_json_path.exists():
+                # 4. 读取并解析 JSON 文件
+                with open(info_json_path, "r", encoding="utf-8") as f:
+                    info_data = json.load(f)
+                
+                # 5. 提取 total_episodes 字段（做容错处理）
+                if "total_episodes" in info_data:
+                    total_episodes = info_data["total_episodes"]
+                    print(f"成功获取 total_episodes: {total_episodes}")
+                else:
+                    print(f"警告: {info_json_path} 中未找到 total_episodes 字段")
         
         self.logger.info(f"Processing dataset {dataset_uuid}")
         
         # Episode Selection Logic
         episode_idx = 0
-        if not total_episodes or total_episodes <= 0:
-            self.logger.info(f"Server provided invalid total_episodes, checking files in {qced_repo_gen_path}...")
-            try:
-                data_path = Path(qced_repo_gen_path) / "data"
-                if data_path.exists():
-                    count = 0
-                    for chunk_dir in data_path.glob("chunk-*"):
-                        if chunk_dir.is_dir():
-                            count += sum(1 for _ in chunk_dir.glob("episode_*.parquet"))
-                    if count > 0:
-                        total_episodes = count
-                        self.logger.info(f"Counted {total_episodes} episodes from filesystem.")
-            except Exception as e:
-                self.logger.error(f"Error counting episodes: {e}")
+        # if not total_episodes or total_episodes <= 0:
+        #     self.logger.info(f"Server provided invalid total_episodes, checking files in {qced_repo_gen_path}...")
+        #     try:
+        #         data_path = Path(qced_repo_gen_path) / "data"
+        #         if data_path.exists():
+        #             count = 0
+        #             for chunk_dir in data_path.glob("chunk-*"):
+        #                 if chunk_dir.is_dir():
+        #                     count += sum(1 for _ in chunk_dir.glob("episode_*.parquet"))
+        #             if count > 0:
+        #                 total_episodes = count
+        #                 self.logger.info(f"Counted {total_episodes} episodes from filesystem.")
+        #     except Exception as e:
+        #         self.logger.error(f"Error counting episodes: {e}")
 
         if total_episodes and total_episodes > 0:
             episode_idx = random.randint(0, total_episodes - 1)
