@@ -248,6 +248,10 @@ class LerobotSimReplayer:
                 sim_val = self.gripper_joint_min + ratio * (
                     self.gripper_joint_max - self.gripper_joint_min
                 )
+                
+                # 保留原始值用于画图
+                self.data_frame[f"{name}_raw"] = val
+                
                 self.data_frame[name] = sim_val
 
     def get_frame_data(self):
@@ -282,10 +286,18 @@ class LerobotSimReplayer:
                 keys_to_load.append("observation.state")
             if "action" in info["features"]:
                 keys_to_load.append("action")
+            if "gripper_open_scale_state" in info["features"]:
+                keys_to_load.append("gripper_open_scale_state")
+            if "gripper_open_scale_action" in info["features"]:
+                keys_to_load.append("gripper_open_scale_action")
         elif self.data_type == "state":
             keys_to_load.append("observation.state")
+            if "gripper_open_scale_state" in info["features"]:
+                keys_to_load.append("gripper_open_scale_state")
         elif self.data_type == "action":
             keys_to_load.append("action")
+            if "gripper_open_scale_action" in info["features"]:
+                keys_to_load.append("gripper_open_scale_action")
         
         # Prepare data streams
         data_streams = {}
@@ -375,7 +387,8 @@ class LerobotSimReplayer:
             plt.ion()
             num_plots = len(self.plot_groups)
             self.fig, self.axs = plt.subplots(num_plots, 1, figsize=(10, 3 * num_plots), sharex=True)
-            #self.fig.suptitle("Robot Replay Data Monitoring", fontsize=16, fontweight='bold', y=0.98)
+            self.fig.suptitle(f"Replay Data Monitoring - {self.data_type.upper()}", fontsize=14, fontweight='bold', y=0.98)
+            self.fig.canvas.manager.set_window_title(f"SimReplay: {self.data_type.upper()}")
             # Ensure axs is iterable even if there is only one plot
             if num_plots == 1:
                 self.axs = [self.axs]
@@ -412,6 +425,12 @@ class LerobotSimReplayer:
             plt.tight_layout()
             
             self.plt_initialized = True
+            print("-" * 30)
+            print("Matplotlib initialized! Configured to plot the following keys:")
+            for idx, group in enumerate(self.plot_groups):
+                print(f"  Plot {idx + 1}: {group}")
+            print("-" * 30)
+            
         except Exception as e:
             print(f"Failed to initialize plot: {e}\n{traceback.format_exc()}")
             self.show_plt = False
@@ -423,7 +442,13 @@ class LerobotSimReplayer:
             
             # Update data for all keys
             for k in self.all_plot_keys:
-                val = self.data_frame.get(k, 0)
+                # 优先获取原始未缩放之前的夹爪值（如果存在的话）来绘制在图表中
+                raw_k = f"{k}_raw"
+                if raw_k in self.data_frame:
+                    val = self.data_frame[raw_k]
+                else:
+                    val = self.data_frame.get(k, 0)
+                
                 self.plt_data[k].append(val)
                 self.lines[k].set_data(self.plt_frames, self.plt_data[k])
             

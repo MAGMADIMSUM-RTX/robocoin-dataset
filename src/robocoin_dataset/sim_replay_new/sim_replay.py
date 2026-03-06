@@ -125,7 +125,8 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
     
     # 使用 repo_path 的最后一段作为 Rerun 标题
     repo_name = Path(repo_path).name
-    rr.init(repo_name, spawn=True)
+    rr.init(repo_name)
+    rr.spawn()
     
     # 初始化 SimReplayer
     replayers = {}
@@ -335,6 +336,10 @@ def run_replay(repo_path, config_name, data_source="data", data_type="all", epis
         if auto_close:
             # Give some time for Rerun to send data
             time.sleep(1.0) 
+            try:
+                rr.disconnect()
+            except Exception:
+                pass
             # Note: Rerun spawns a separate process/tab, we can't force close it easily from here
             # but we can stop the script.
             print("Replay finished.")

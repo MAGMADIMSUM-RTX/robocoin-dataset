@@ -13,6 +13,30 @@ class LejuRobotProcessor(StateActionDataPostProcessorBase):
     def prepare_processing(self) -> None:
         pass
 
+    def process_episode_data(self, ori_data: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+        # 从基类获取当前正在处理的 episode 索引
+        if self.episode_idx is not None:
+            self.episode_index = self.episode_idx
+
+        processed_data=self.smooth_dict_data(ori_data, 2)
+        
+        # 先进行缩放处理
+        processed_state = processed_data["observation.state"]
+        processed_action = processed_data["action"]
+        # processed_gripper_open_scale_state = processed_data.get("gripper_open_scale_state") if "gripper_open_scale_state" in processed_data else None
+        # processed_gripper_open_scale_action = processed_data.get("gripper_open_scale_action") if "gripper_open_scale_action" in processed_data else None
+
+        result = {
+            "observation.state": processed_state,
+            "action": processed_action,
+        }
+        if "gripper_open_scale_state" in ori_data:
+            result["gripper_open_scale_state"] = processed_data["gripper_open_scale_state"]
+        if "gripper_open_scale_action" in ori_data:
+            result["gripper_open_scale_action"] = processed_data["gripper_open_scale_action"]
+        return result
+
+
     # 该方法将ori_state_data进行后处理，返回结果为后处理后的数据
     def process_episode_state_data(self, ori_state_data: np.ndarray) -> np.ndarray:
         new_state_data = ori_state_data.copy()
@@ -24,12 +48,3 @@ class LejuRobotProcessor(StateActionDataPostProcessorBase):
         new_action_data = ori_action_data.copy()
         # 应用平滑滤波
         return new_action_data
-    def get_modified_feature_names(self):
-        return super().get_modified_feature_names()
-
-    def get_modified_info_state_names(self) -> dict[str, str]:
-        return {}
-
-    # 该方法返回处理后的action数据名称
-    def get_modified_info_action_names(self) -> dict[str, str]:
-        return {}

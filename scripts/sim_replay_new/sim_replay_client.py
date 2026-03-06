@@ -72,37 +72,22 @@ class SimReplayNewClient(TaskClient):
     def _cleanup_viewers(self):
         """Clean up matplotlib and rerun viewers"""
         try:
-            # Kill rerun processes
-            subprocess.run(["pkill", "-f", "rerun"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            
-            # Close matplotlib windows if possible (though running in separate process usually)
-            # Since run_replay is in same process, we can try to close matplotlib
-            try:
-                import matplotlib.pyplot as plt
-                # Avoid tkinter RuntimeError by checking main loop or catching exception
-                plt.close('all')
-            except ImportError:
-                pass
-            except RuntimeError:
-                # Catch RuntimeError: main thread is not in main loop
-                pass
-            except Exception:
-                pass
-                
+            # Replay now runs in its own process, so Matplotlib is cleaned up natively on exit.
+            # We just aggressively clean up runaway rerun viewer processes.
+            subprocess.run(["pkill", "-x", "rerun"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
-            self.logger.warning(f"Error cleaning up viewers: {e}")
+            if self.logger:
+                self.logger.warning(f"Error cleaning up viewers: {e}")
 
     async def process_task(self, task_data: dict) -> dict:
         # Clean up previous viewers before starting new task
         self._cleanup_viewers()
 
-        # Run sync task in main thread because matplotlib requires main thread
-        # Note: This will block the event loop and heartbeat during user interaction!
+        # Run task in main thread for Matplotlib, but async input handles heartbeat gracefully
         task_id = task_data.get(TASK_ID)
         
         try:
-            # task_result = await loop.run_in_executor(None, self._sync_process_task, task_data)
-            task_result = self._sync_process_task(task_data)
+            task_result = await self._sync_process_task_async_input(task_data)
             return task_result
         except Exception as e:
             error_msg = f"{e}\n{traceback.format_exc()}"
@@ -115,6 +100,11 @@ class SimReplayNewClient(TaskClient):
             }
 
     def _sync_process_task(self, task_data: dict) -> dict:
+        # Since we changed core logic to run in the main thread asynchronously for Matplotlib constraints,
+        # we implement this required method as a wrapper, though process_task calls our async implementation directly.
+        pass
+
+    async def _sync_process_task_async_input(self, task_data: dict) -> dict:
         dataset_uuid = task_data.get(DATASET_UUID)
         qced_repo_gen_path = task_data.get(LEFORMAT_PATH)
         config_name = task_data.get(CONFIG_NAME)
@@ -171,18 +161,34 @@ class SimReplayNewClient(TaskClient):
         fail_reason = None
         status = TASK_SUCCESS # Tentative, waits for user confirmation
         
+        loop = asyncio.get_running_loop()
+        
         try:
-            run_replay(
-                repo_path=qced_repo_gen_path,
-                config_name=config_name,
-                data_source="state_action_data", # Changed from sa_dpp
-                data_type="all",
-                episode_idx=episode_idx,
-                auto_close=True,
-                version=device_model_version or "default_version"
+            import multiprocessing as mp
+            ctx = mp.get_context('spawn')
+            p = ctx.Process(
+                target=run_replay,
+                kwargs={
+                    "repo_path": qced_repo_gen_path,
+                    "config_name": config_name,
+                    "data_source": "state_action_data", # Changed from sa_dpp
+                    "data_type": "all",
+                    "episode_idx": episode_idx,
+                    "auto_close": True,
+                    "version": device_model_version or "default_version"
+                }
             )
+            p.start()
+            
+            # Wait for replay to finish asynchronously so we don't block heartbeat!
+            await loop.run_in_executor(None, p.join)
+            
+            if p.exitcode != 0 and p.exitcode is not None:
+                self.logger.warning(f"Replay process exited with code {p.exitcode}")
+                # Optionally set to fail if code != 0, but letting user decide is also fine.
+                
         except Exception as e:
-            self.logger.error(f"Error during replay: {e}\n{traceback.format_exc()}")
+            self.logger.error(f"Error during replay process: {e}\n{traceback.format_exc()}")
             # If replay fails, we can either set a fail status or continue to interactive check
             final_status = TASK_FAILED
             final_msg = f"Replay error: {e}\n{traceback.format_exc()}"
@@ -195,7 +201,9 @@ class SimReplayNewClient(TaskClient):
         
         while True:
             try:
-                user_input = input(f"Dataset {dataset_uuid}: 通过 (p) / 失败 (f) / 退出 (c)? [p]: ").strip().lower()
+                raw_input = await loop.run_in_executor(None, input, f"Dataset {dataset_uuid}: 通过 (p) / 失败 (f) / 退出 (c)? [p]: ")
+                user_input = raw_input.strip().lower()
+                
                 if user_input in ["", "p", "pass"]:
                     final_status = TASK_SUCCESS
                     break
@@ -208,7 +216,8 @@ class SimReplayNewClient(TaskClient):
                 elif user_input in ["f", "fail"]:
                     final_status = TASK_FAILED
                     while True:
-                        reason = input("输入错误原因: ").strip()
+                        raw_reason = await loop.run_in_executor(None, input, "输入错误原因: ")
+                        reason = raw_reason.strip()
                         if reason:
                             final_msg = f"episode {episode_idx} error: {reason}"
                             break

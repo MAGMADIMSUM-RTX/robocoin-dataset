@@ -123,46 +123,25 @@ class YinheProcessor(StateActionDataPostProcessorBase):
         # 从基类获取当前正在处理的 episode 索引
         if self.episode_idx is not None:
             self.episode_index = self.episode_idx
+
+        processed_data=self.smooth_dict_data(ori_data, 2)
         
-        state = ori_data.get("observation.state")
-        action = ori_data.get("action")
+        # 先进行缩放处理
+        processed_state = processed_data["observation.state"]
+        processed_action = processed_data["action"]
+        # processed_gripper_open_scale_state = processed_data.get("gripper_open_scale_state") if "gripper_open_scale_state" in processed_data else None
+        # processed_gripper_open_scale_action = processed_data.get("gripper_open_scale_action") if "gripper_open_scale_action" in processed_data else None
 
-        if state is None or action is None:
-            raise ValueError("ori_data must contain 'observation.state' and 'action'")
-
-        if not isinstance(state, np.ndarray) or not isinstance(action, np.ndarray):
-            raise ValueError("state and action must be numpy arrays")
-
-        if state.shape[0] != action.shape[0]:
-            raise ValueError("state and action must have same number of frames")
-
-        out_state = self.process_episode_state_data(state)
-        out_action = self.process_episode_action_data(action)
-
-        # 将 state 中的 gripper 数据插入到 action 中
-        # 按照 action 的特征顺序重新构建数组
-        if self.left_gripper_state_idx is not None and self.right_gripper_state_idx is not None:
-            # 提取 gripper 数据
-            left_gripper_data = out_state[:, self.left_gripper_state_idx:self.left_gripper_state_idx+1]
-            right_gripper_data = out_state[:, self.right_gripper_state_idx:self.right_gripper_state_idx+1]
-            
-            # 在索引 7 和 15 位置插入 gripper 数据
-            # left_gripper_open 插入到索引 7 (在 left_arm_joint_7_rad 之后)
-            # right_gripper_open 插入到索引 15 (在 right_arm_joint_7_rad 之后，但要考虑已插入的 left_gripper)
-            out_action = np.concatenate([
-                out_action[:, :7],              # left_arm_joint_1 到 joint_7
-                left_gripper_data,              # left_gripper_open
-                out_action[:, 7:14],            # right_arm_joint_1 到 joint_7
-                right_gripper_data,             # right_gripper_open
-            ], axis=1)
-            # print("已将 gripper 数据从 state 复制到 action。")
-
-        result = {"observation.state": out_state, "action": out_action}
+        result = {
+            "observation.state": processed_state,
+            "action": processed_action,
+        }
         if "gripper_open_scale_state" in ori_data:
-            result["gripper_open_scale_state"] = ori_data["gripper_open_scale_state"]
+            result["gripper_open_scale_state"] = processed_data["gripper_open_scale_state"]
         if "gripper_open_scale_action" in ori_data:
-            result["gripper_open_scale_action"] = ori_data["gripper_open_scale_action"]
+            result["gripper_open_scale_action"] = processed_data["gripper_open_scale_action"]
         return result
+
     
     def get_modified_feature_names(self):
         return super().get_modified_feature_names()

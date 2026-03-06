@@ -89,7 +89,7 @@ if __name__ == "__main__":
 """usage:
 # realman_rmc_aidal
 python scripts/state_action_data_post_process/state_action_data_post_process.py \
-    --db_file_path db/postgresql_config.yaml \
+    --db_file_path db/my_config.yaml \
     --state_action_data_post_process_factory_config_path ./scripts/state_action_data_post_process/configs/state_action_data_post_process_factory_config.yaml \
     --device_model Agilex_Cobot_Magic \
     --device_model_version default_version \

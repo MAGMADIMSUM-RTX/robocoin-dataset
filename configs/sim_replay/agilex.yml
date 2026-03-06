@@ -26,8 +26,8 @@ sim:
   # 物理世界的限制 (MuJoCo 中的实际行程, 单位: 米或弧度)
   gripper_config:
     gripper_name:
-      - right_gripper_open
-      - left_gripper_open
+      - right_gripper_open_scale
+      - left_gripper_open_scale
     gripper_joint_max: 0.04  # 物理完全张开的宽度
     gripper_joint_min: 0.0   # 物理完全闭合的宽度
     gripper: True
@@ -90,16 +90,16 @@ show_plt:
   - 
     - left_gripper_open_scale
   # 第二张图
-  -
-    - left_eef_pos_x_m
-    - left_eef_pos_y_m
-    - left_eef_pos_z_m
+  # -
+  #   - left_eef_pos_x_m
+  #   - left_eef_pos_y_m
+  #   - left_eef_pos_z_m
   # 第三张图
   -
     - right_gripper_open_scale
   # 第四张图
-  -
-    - right_eef_pos_x_m
-    - right_eef_pos_y_m
-    - right_eef_pos_z_m
+  # -
+  #   - right_eef_pos_x_m
+  #   - right_eef_pos_y_m
+  #   - right_eef_pos_z_m
 
