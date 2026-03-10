@@ -308,13 +308,21 @@ class LerobotSimReplayer:
                 names = info["features"][key]["names"].copy()  # 复制原名称列表
                 data_list = df[key].to_list()
                 
+                # 如果是 action，加上前缀用于图表可视化：
+                if "action" in key:
+                    names = [f"act_{n}" for n in names]
+                
                 # ===== 核心修改：新增gripper_open_scale字段 =====
                 # 1. 确定对应的gripper_open_scale键（state对应state，action对应action）
                 gripper_key = "gripper_open_scale_state" if key == "observation.state" else "gripper_open_scale_action"
                 # 2. 如果存在该字段，合并名称和数据
                 if gripper_key in info["features"] and gripper_key in df.columns:
                     # 合并名称
-                    names.extend(info["features"][gripper_key]["names"])
+                    gripper_names = info["features"][gripper_key]["names"].copy()
+                    if "action" in key:
+                        gripper_names = [f"act_{n}" for n in gripper_names]
+                    names.extend(gripper_names)
+                    
                     # 合并数据：将gripper_open_scale的每一行数据追加到原数据后
                     gripper_data_list = df[gripper_key].to_list()
                     # 确保两个数据列表长度一致
