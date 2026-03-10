@@ -17,7 +17,7 @@ python scripts/sim_replay_new/sim_replay_local.py \
     --episode_idx 0
 
 python scripts/sim_replay_new/sim_replay_local.py \
-    --repo_path /home/user/robocoin-dataset_new/Agilex_Cobot_Magic_pour_water_into_cup_0 \
+    --repo_path /home/user/robocoin-dataset/Agilex_Cobot_Magic_pour_water_into_cup_0 \
     --config_name agilex \
     --data_source data \
     --data_type all \

@@ -13,6 +13,30 @@ class UnitreeG1Processor(StateActionDataPostProcessorBase):
     def prepare_processing(self) -> None:
         pass
 
+    def process_episode_data(self, ori_data: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+        # 从基类获取当前正在处理的 episode 索引
+        if self.episode_idx is not None:
+            self.episode_index = self.episode_idx
+
+        processed_data=self.smooth_dict_data(ori_data, 2)
+        
+        # 先进行缩放处理
+        processed_state = processed_data["observation.state"]
+        processed_action = processed_data["action"]
+        # processed_gripper_open_scale_state = processed_data.get("gripper_open_scale_state") if "gripper_open_scale_state" in processed_data else None
+        # processed_gripper_open_scale_action = processed_data.get("gripper_open_scale_action") if "gripper_open_scale_action" in processed_data else None
+
+        result = {
+            "observation.state": processed_state,
+            "action": processed_action,
+        }
+        if "gripper_open_scale_state" in ori_data:
+            result["gripper_open_scale_state"] = processed_data["gripper_open_scale_state"]
+        if "gripper_open_scale_action" in ori_data:
+            result["gripper_open_scale_action"] = processed_data["gripper_open_scale_action"]
+        return result
+
+
     # 该方法将ori_state_data进行后处理，返回结果为后处理后的数据
     def process_episode_state_data(self, ori_state_data: np.ndarray) -> np.ndarray:
         new_state_data = ori_state_data.copy()
@@ -42,34 +66,24 @@ class UnitreeG1ThreeFingerOutProcessor(StateActionDataPostProcessorBase):
         return new_action_data
     
     def process_episode_data(self, ori_data: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-        """
-        将 action 的手部数据（后14维）复制给 state 的手部数据
-        state 和 action 的前14维（双臂）保持不变
-        然后对两者都应用平滑滤波
-        """
-        state = ori_data.get("observation.state")
-        action = ori_data.get("action")
-        
-        if state is None or action is None:
-            raise ValueError("ori_data must contain 'observation.state' and 'action'")
-        
-        if not isinstance(state, np.ndarray) or not isinstance(action, np.ndarray):
-            raise ValueError("state and action must be numpy arrays")
-        
-        if state.shape[0] != action.shape[0]:
-            raise ValueError("state and action must have same number of frames")
-        
-        # 复制 state 和 action
-        new_state = state.copy()
-        new_action = action.copy()
-        
-        result = {"observation.state": new_state, "action": new_action}
-        
-        if "gripper_open_scale_state" in ori_data:
-             result["gripper_open_scale_state"] = ori_data["gripper_open_scale_state"]
-             
-        if "gripper_open_scale_action" in ori_data:
-             result["gripper_open_scale_action"] = ori_data["gripper_open_scale_action"]
-             
-        return result
+        # 从基类获取当前正在处理的 episode 索引
+        if self.episode_idx is not None:
+            self.episode_index = self.episode_idx
 
+        processed_data=self.smooth_dict_data(ori_data, 2)
+        
+        # 先进行缩放处理
+        processed_state = processed_data["observation.state"]
+        processed_action = processed_data["action"]
+        # processed_gripper_open_scale_state = processed_data.get("gripper_open_scale_state") if "gripper_open_scale_state" in processed_data else None
+        # processed_gripper_open_scale_action = processed_data.get("gripper_open_scale_action") if "gripper_open_scale_action" in processed_data else None
+
+        result = {
+            "observation.state": processed_state,
+            "action": processed_action,
+        }
+        if "gripper_open_scale_state" in ori_data:
+            result["gripper_open_scale_state"] = processed_data["gripper_open_scale_state"]
+        if "gripper_open_scale_action" in ori_data:
+            result["gripper_open_scale_action"] = processed_data["gripper_open_scale_action"]
+        return result

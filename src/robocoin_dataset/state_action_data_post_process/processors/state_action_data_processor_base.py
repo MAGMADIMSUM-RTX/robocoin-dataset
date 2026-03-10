@@ -47,6 +47,21 @@ class StateActionDataPostProcessorBase(DataPostProcessorBase):
         
         return smoothed_data
 
+    def smooth_dict_data(self, data_dict: dict[str, np.ndarray], window_size: int = 4) -> dict[str, np.ndarray]:
+        """
+        对字典中的每个数据数组调用 smooth_data 进行平滑滤波
+        
+        Args:
+            data_dict: 键为字符串，值为 numpy 数组的字典
+            window_size: 滑动窗口大小
+            
+        Returns:
+            平滑处理后的字典
+        """
+        result = {}
+        for key, value in data_dict.items():
+            result[key] = self.smooth_data(value, window_size=window_size)
+        return result
     
     def _swap_left_right(self, data: np.ndarray) -> np.ndarray:
         """交换前13维和后13维"""
