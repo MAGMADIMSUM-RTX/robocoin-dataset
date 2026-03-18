@@ -685,7 +685,7 @@ def detect_consecutive_static_frames(
     video_paths: list[str | Path],
     phash_dist_threshold: int = 5,
     static_frames_threshold: int = 10,
-    sample_count: int = 4,  # 均匀采样的关键帧数量
+    sample_count: int = 10,  # 均匀采样的关键帧数量
     episode_idx: int = None
 ) -> float:
     """

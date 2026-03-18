@@ -30,3 +30,8 @@ ruantong_a2d:
 - version: default_version
   base_config_path: default_checker_config.yaml
   specific_config_path: ruantong_a2d.yaml
+
+realman_rmc-aiad-l:
+- version: default_version
+  base_config_path: default_checker_config.yaml
+  specific_config_path: agilex_cobot_decoupled_magic.yaml

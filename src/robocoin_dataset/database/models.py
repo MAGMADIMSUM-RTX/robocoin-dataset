@@ -39,6 +39,9 @@ class DatasetDB(Base):
     dataset_name = Column(String(255), unique=False, index=True, nullable=False)
     dataset_name_id = Column(Integer,nullable=False,default=0)
     dataset_batch_number = Column(Integer,nullable=False,default=0)
+    is_ignore = Column(Boolean, nullable=False)
+    fps = Column(Integer)
+    total_time = Column(Float)
 
     # 入库相关字段
     device_model = Column(String(100), nullable=True)

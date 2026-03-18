@@ -449,7 +449,10 @@ def gen_qced_repo(
         input_feature=input_feature,
         output_feature=qced_feature,
     )
-    hard_link_repo_path = repo_path.parent / f"{str(repo_path.name)}_{hl_suffix}"
+    hard_link_root_dir = repo_path.parent / "二次成功区"
+    hard_link_root_dir.mkdir(parents=True, exist_ok=True)  # 必须加，自动创建目录
+    hard_link_repo_path = hard_link_root_dir / f"{repo_path.name}_{hl_suffix}"
+    # hard_link_repo_path = repo_path.parent / f"{str(repo_path.name)}_{hl_suffix}"
     file_corresp, dir_corresp = RepoHardLinkCorresp(
         input_feature=qced_feature,
         source_repo_path=repo_path,
@@ -457,11 +460,11 @@ def gen_qced_repo(
         video_path_corresp=video_path_corresp,
     ).get_hard_link_corresp()
 
-    dir_corresp_filtered = {}
-    for src_dir, dst_dir in dir_corresp.items():
-        if "annotations" not in str(src_dir).lower() and "annotations" not in str(dst_dir).lower():
-            dir_corresp_filtered[src_dir] = dst_dir
-    dir_corresp = dir_corresp_filtered
+    # dir_corresp_filtered = {}
+    # for src_dir, dst_dir in dir_corresp.items():
+    #     if "annotations" not in str(src_dir).lower() and "annotations" not in str(dst_dir).lower():
+    #         dir_corresp_filtered[src_dir] = dst_dir
+    # dir_corresp = dir_corresp_filtered
 
     # print("=" * 80)
     # print("即将创建硬链接的文件清单（共 {} 个文件）：".format(len(file_corresp)))
@@ -489,6 +492,7 @@ def _sync_qced_repo_gen_tasks(session: Session) -> None:
         and_(
             # 必要前提：convert必须成功
             DatasetDB.qc_status == TaskStatus.COMPLETED,
+            DatasetDB.is_ignore == False,
             # 两个触发分支
             or_(
                 # 分支1: 正在排队
@@ -520,6 +524,7 @@ def _gen_one_qced_repo_gen_task(
         and_(
             # 必要前提：convert必须成功
             DatasetDB.qc_status == TaskStatus.COMPLETED,
+            DatasetDB.is_ignore == False,
             DatasetDB.qced_repo_gen_status == TaskStatus.PENDING,
         )
     )

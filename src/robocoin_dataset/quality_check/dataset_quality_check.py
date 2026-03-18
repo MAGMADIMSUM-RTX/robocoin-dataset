@@ -509,6 +509,7 @@ def _gen_one_dataset_quality_check_task_without_sync(
             # 必要前提：convert必须成功
             DatasetDB.convert_status == TaskStatus.COMPLETED,
             DatasetDB.qc_status == TaskStatus.PENDING,
+            DatasetDB.is_ignore == False,
         )
     )
     item = query.first()
@@ -676,6 +677,9 @@ class DatasetQualityCheckServer(TaskServer):
                  # 新增：判断是否已完成，且不允许重复处理
                 if item.qc_status == TaskStatus.COMPLETED:
                     self.logger.info(f"Dataset {self.target_dataset_uuid} has already been processed successfully, skip duplicate assignment.")
+                    return None
+                if item.is_ignore == True:
+                    self.logger.info(f"Dataset {self.target_dataset_uuid} has already been ignored, skip duplicate assignment.")
                     return None
                 # 强制校验前置条件：convert_status完成
                 if item.convert_status != TaskStatus.COMPLETED:
