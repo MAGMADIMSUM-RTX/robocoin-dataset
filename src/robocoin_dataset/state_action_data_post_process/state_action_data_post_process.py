@@ -158,6 +158,97 @@ def _state_action_data_post_process(
     if processor_class is None:
         raise ValueError("processor_class is None")
     processor: StateActionDataPostProcessorBase = processor_class(convert_path=convert_path)
+    
+    # 使得代码不生产新的 json 和 parquet 文件，而是直接修改原来的 json 和 parquet 文件
+    import json
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    from robocoin_dataset.utils.le_path import get_episodes_stats_jsonl_file
+
+    processor.new_parquet_files = processor.parquet_files
+    processor.new_info_file = processor.info_file_path
+    processor.new_episodes_stats_file_path = get_episodes_stats_jsonl_file(processor.convert_path)
+
+    # 替换写文件方法，使其在原表基础上修改
+    def custom_write_new_episode_file(new_data, episode_idx):
+        file_path = processor.new_parquet_files[episode_idx]
+        table = pq.read_table(file_path)
+        for col_name, arr in new_data.items():
+            if arr is None:
+                continue
+            if arr.ndim == 1:
+                pa_type = processor._get_pa_type(arr.dtype)
+                pa_array = pa.array(arr, type=pa_type)
+            elif arr.ndim == 2:
+                value_type = processor._get_pa_type(arr.dtype)
+                list_type = pa.list_(value_type)
+                pa_array = pa.array([row.tolist() for row in arr], type=list_type)
+            else:
+                raise ValueError(f"Unsupported array dimension: {arr.ndim} for '{col_name}'")
+                
+            if col_name in table.column_names:
+                idx = table.column_names.index(col_name)
+                table = table.set_column(idx, table.schema.field(idx).with_type(pa_array.type), pa_array)
+            else:
+                table = table.append_column(pa.field(col_name, pa_array.type), pa_array)
+        pq.write_table(table, file_path)
+
+    processor.write_new_episode_file = custom_write_new_episode_file
+
+    # 替换写 info 方法，使其在原 info.json 基础上修改
+    def custom_write_new_info_file():
+        with open(processor.info_file_path, "r") as f:
+            json_dict = json.load(f)
+        if "features" not in json_dict:
+            json_dict["features"] = {}
+        for feature_key, names in processor.get_modified_feature_names().items():
+            if names is not None:
+                flattened_names = []
+                for item in names:
+                    if isinstance(item, list):
+                        flattened_names.extend(item)
+                    elif isinstance(item, str):
+                        flattened_names.append(item)
+                names = flattened_names
+            if feature_key not in json_dict["features"]:
+                json_dict["features"][feature_key] = {}
+            json_dict["features"][feature_key]["names"] = names
+        with open(processor.new_info_file, "w") as f:
+            json.dump(json_dict, f, indent=4)
+
+    processor.write_new_info_file = custom_write_new_info_file
+
+    # 替换写 stats 方法，使其在原 episodes_stats.jsonl 基础上修改
+    def custom_write_new_episodes_stats_file():
+        # 读取原有的 stats
+        ori_stats = []
+        if processor.new_episodes_stats_file_path.exists():
+            with open(processor.new_episodes_stats_file_path, "r") as f:
+                for line in f:
+                    if line.strip():
+                        ori_stats.append(json.loads(line))
+        
+        # 将新的 stats 更新到 ori_stats 中
+        # processor.episodes_stats 包含了新特征的 stats
+        for new_stat in processor.episodes_stats:
+            ep_idx = new_stat.get("episode_index")
+            # 找到对应的原 stat
+            ori_stat = next((s for s in ori_stats if s.get("episode_index") == ep_idx), None)
+            if ori_stat is None:
+                ori_stats.append(new_stat)
+            else:
+                if "stats" not in ori_stat:
+                    ori_stat["stats"] = {}
+                for k, v in new_stat.get("stats", {}).items():
+                    ori_stat["stats"][k] = v
+
+        with open(processor.new_episodes_stats_file_path, "w") as f:
+            for stat in ori_stats:
+                json.dump(stat, f)
+                f.write("\n")
+
+    processor._write_new_episodes_stats_file = custom_write_new_episodes_stats_file
+
     processor.process()
 
 

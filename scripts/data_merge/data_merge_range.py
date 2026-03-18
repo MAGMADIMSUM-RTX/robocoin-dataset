@@ -1,7 +1,11 @@
 import logging
-from pathlib import Path
-from typing import List, Dict
 from collections import defaultdict
+import sys
+from typing import List, Dict
+from pathlib import Path
+
+# 把项目的src目录添加到sys.path
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent / "src"))
 
 # 数据库依赖
 from sqlalchemy.orm import Session
@@ -12,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 # ====================== 日志配置（终端+文件） ======================
-DB_FILE_PATH = "/home/liuyou/Documents/robocoin-dataset/db/postgresql_config.yaml"
+DB_FILE_PATH = "db/postgresql_config.yaml"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",

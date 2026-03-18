@@ -132,6 +132,7 @@ left_eef_body_name = args.left_eef_body_name
 right_eef_body_name = args.right_eef_body_name
 
 try:
+    
     model = mujoco.MjModel.from_xml_path(str(urdf_file_path))
     temp_mjcf_path = urdf_file_path.parent / (urdf_file_path.stem + "_temp.xml")
 
@@ -147,7 +148,8 @@ try:
 
 
 except Exception as e:
-    print("❌ Conversion failed:", traceback(e))
+    print("❌ Conversion failed:")
+    traceback.print_exc()
     exit(1)
 
 """usage:

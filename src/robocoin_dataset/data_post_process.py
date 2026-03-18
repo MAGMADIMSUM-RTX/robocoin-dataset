@@ -199,7 +199,7 @@ class DataPostProcessorBase:
         ep_stats["stats"] = {}
         for feature_key, data in episode_data.items():
             if data is None:
-                raise ValueError(f"ori_data {feature_key} is None")
+                continue
             ep_stats["stats"][feature_key] = {}
             ep_stats["stats"][feature_key]["mean"] = np.mean(data, axis=0).tolist()
             ep_stats["stats"][feature_key]["std"] = np.std(data, axis=0).tolist()

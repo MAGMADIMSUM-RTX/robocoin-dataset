@@ -60,7 +60,10 @@ class StateActionDataPostProcessorBase(DataPostProcessorBase):
         """
         result = {}
         for key, value in data_dict.items():
-            result[key] = self.smooth_data(value, window_size=window_size)
+            if value is None:
+                result[key] = None
+            else:
+                result[key] = self.smooth_data(value, window_size=window_size)
         return result
     
     def _swap_left_right(self, data: np.ndarray) -> np.ndarray:
