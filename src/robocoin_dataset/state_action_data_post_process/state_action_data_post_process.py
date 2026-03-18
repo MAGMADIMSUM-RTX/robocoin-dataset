@@ -163,7 +163,9 @@ def _state_action_data_post_process(
     import json
     import pyarrow as pa
     import pyarrow.parquet as pq
+    import numpy as np
     from robocoin_dataset.utils.le_path import get_episodes_stats_jsonl_file
+    from lerobot.datasets.compute_stats import aggregate_stats
 
     processor.new_parquet_files = processor.parquet_files
     processor.new_info_file = processor.info_file_path
@@ -246,6 +248,44 @@ def _state_action_data_post_process(
             for stat in ori_stats:
                 json.dump(stat, f)
                 f.write("\n")
+
+        # 重新计算 meta/info.json 中的 stats
+        stats_list = [s["stats"] for s in ori_stats if "stats" in s]
+        
+        # 将 list 转换为 numpy array 以供 aggregate_stats 使用
+        def to_numpy_recursive(obj):
+            if isinstance(obj, list):
+                return np.array(obj)
+            elif isinstance(obj, dict):
+                return {k: to_numpy_recursive(v) for k, v in obj.items()}
+            elif isinstance(obj, (float, int, np.number)):
+                return np.array([obj])
+            return obj
+            
+        stats_list_np = [to_numpy_recursive(s) for s in stats_list]
+
+        if stats_list_np:
+            agg_stats = aggregate_stats(stats_list_np)
+            
+            # 将 numpy array 转换为 list
+            def to_serializable(obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                elif isinstance(obj, dict):
+                    return {k: to_serializable(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [to_serializable(x) for x in obj]
+                return obj
+                
+            agg_stats_serializable = to_serializable(agg_stats)
+            
+            with open(processor.new_info_file, "r") as f:
+                info_dict = json.load(f)
+            
+            info_dict["stats"] = agg_stats_serializable
+            
+            with open(processor.new_info_file, "w") as f:
+                json.dump(info_dict, f, indent=4)
 
     processor._write_new_episodes_stats_file = custom_write_new_episodes_stats_file
 
