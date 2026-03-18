@@ -23,10 +23,11 @@ class UnitreeG1Processor(StateActionDataPostProcessorBase):
         # 先进行缩放处理
         processed_state = processed_data["observation.state"]
         processed_action = processed_data["action"]
-        # 前12维数据不变，后面的所有数据都要 *2pi/360
-        scale_factor = 2 * np.pi / 360
-        processed_state[:, 12:] = processed_state[:, 12:] * scale_factor
-        processed_action[:, 12:] = processed_action[:, 12:] * scale_factor
+        
+        # 前12维数据不变，后面的所有数据都要将其由角度转换为弧度
+        processed_state[:, 12:] = np.deg2rad(processed_state[:, 12:])
+        processed_action[:, 12:] = np.deg2rad(processed_action[:, 12:])
+
 
         # processed_gripper_open_scale_state = processed_data.get("gripper_open_scale_state") if "gripper_open_scale_state" in processed_data else None
         # processed_gripper_open_scale_action = processed_data.get("gripper_open_scale_action") if "gripper_open_scale_action" in processed_data else None
@@ -80,6 +81,12 @@ class UnitreeG1ThreeFingerOutProcessor(StateActionDataPostProcessorBase):
         # 先进行缩放处理
         processed_state = processed_data["observation.state"]
         processed_action = processed_data["action"]
+
+        # 前12维数据不变，后面的所有数据都要将其由角度转换为弧度
+        processed_state[:, 12:] = np.deg2rad(processed_state[:, 12:])
+        processed_action[:, 12:] = np.deg2rad(processed_action[:, 12:])
+
+
         # processed_gripper_open_scale_state = processed_data.get("gripper_open_scale_state") if "gripper_open_scale_state" in processed_data else None
         # processed_gripper_open_scale_action = processed_data.get("gripper_open_scale_action") if "gripper_open_scale_action" in processed_data else None
 
