@@ -555,7 +555,6 @@ def dectect_max_frame_stable_then_jump(video_paths: list[str | Path], episode_id
         max_jump = 125  # 限制最大值，避免极端跳变导致分数过高
     return max_jump / 125  # 归一化，假设100以上视为严重异常，125是为了让分数在0~1范围内更平滑
 
-运行
 
 @episode_video_checker_registry("max_frame_jump_dist")
 def detect_max_frame_jump_dist(
