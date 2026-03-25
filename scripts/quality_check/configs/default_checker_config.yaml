@@ -12,7 +12,7 @@ dataset_data_checkers:  #  筛选出帧数小于阈值的Episode，判定为异�
 
   - name: "abnormal_episode_length"  #  找出帧数显著偏离数据集整体分布的Episode（过短/过长），判定为异常
     params:
-      threshold: 5.0  # threshold（MAD阈值）：默认4.0，值越大越宽松（更少Episode被判定为离群），值越小越严格
+      threshold: 5.0  # threshold（MAD阈值）：默认5.0，值越大越宽松（更少Episode被判定为离群），值越小越严格
     should_check: True  
 
 # Episode-level data checkers (作用于每个 episode 的数值数据，如关节角)
