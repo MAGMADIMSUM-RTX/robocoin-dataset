@@ -37,6 +37,9 @@ dependencies = [
   "psycopg2>=2.9.11",
 ] # project dependencies
 
+[tool.uv]
+package = true
+
 # scripts path
 [project.scripts]
 # template_project = "template_project.main:main"

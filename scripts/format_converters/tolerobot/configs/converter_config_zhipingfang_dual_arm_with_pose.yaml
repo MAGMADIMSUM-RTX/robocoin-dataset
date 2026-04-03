@@ -4,11 +4,11 @@ features:
   observation:
     images:
       # RGB cameras only (不包含depth，按用户要求)
-      - cam_name: cam_chest_rgb
+      - cam_name: cam_front_chest_rgb
         args:
           h5_path: "observations/camera/rgb/chest/images"
       
-      - cam_name: cam_head_rgb
+      - cam_name: cam_front_head_rgb
         args:
           h5_path: "observations/camera/rgb/head/images"
       
