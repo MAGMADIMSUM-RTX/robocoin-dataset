@@ -339,6 +339,12 @@ Galbot_G1:
   converter_config_path: converter_config_yinhe_full.yaml
 
 zhipingfang:
+- version: test_fix
+  verison_description: zhipingfang dual arm with pose (test fixed version without py modifications)
+  module: robocoin_dataset.format_converter.tolerobot.lerobot_format_converter_h5
+  class: LerobotFormatConverterHdf5
+  converter_config_path: converter_config_zhipingfang_test_fix.yaml
+
 - version: left_arm_with_pose
   verison_description: zhipingfang single left arm with pose (left joints + pose + gripper, right arm empty)
   module: robocoin_dataset.format_converter.tolerobot.lerobot_format_converter_h5

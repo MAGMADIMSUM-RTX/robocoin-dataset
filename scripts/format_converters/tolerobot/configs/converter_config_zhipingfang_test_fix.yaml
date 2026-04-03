@@ -1,0 +1,170 @@
+fps: 30  # 需根据实际collection_frequency调整
+
+features:
+  observation:
+    images:
+      # RGB cameras only (不包含depth，按用户要求)
+      - cam_name: cam_front_chest_rgb
+        args:
+          h5_path: "observations/camera/rgb/chest/images"
+      
+      - cam_name: cam_front_head_rgb
+        args:
+          h5_path: "observations/camera/rgb/head/images"
+      
+      - cam_name: cam_left_wrist_rgb
+        args:
+          h5_path: "observations/camera/rgb/left/images"
+      
+      - cam_name: cam_right_wrist_rgb
+        args:
+          h5_path: "observations/camera/rgb/right/images"
+
+    state:
+      # Total dimensions: 26 (6+6+6+6+1+1) 
+      # 警告：由于当前 .py 文件只支持到 6 自由度，已将第 7 自由度截断，否则会导致校验失败。
+      sub_state:
+        # 左臂关节 (6维) - 单位: degree
+        - names:
+            - left_arm_joint_1_rad
+            - left_arm_joint_2_rad
+            - left_arm_joint_3_rad
+            - left_arm_joint_4_rad
+            - left_arm_joint_5_rad
+            - left_arm_joint_6_rad
+          args:
+            h5_path: "observations/arm/left/joints"
+            range_from: 0
+            range_to: 6  # 截取前 6 个关节
+          convert_func: degree2rad  # 度数转弧度
+        
+        # 左臂末端执行器姿态 (6维: position xyz + euler xyz)
+        - names:
+            - left_eef_pos_x_m
+            - left_eef_pos_y_m
+            - left_eef_pos_z_m
+            - left_eef_rot_euler_x_rad
+            - left_eef_rot_euler_y_rad
+            - left_eef_rot_euler_z_rad
+          args:
+            h5_path: "observations/arm/left/pose"
+            range_from: 0
+            range_to: 6
+        
+        # 右臂关节 (6维) - 单位: degree
+        - names:
+            - right_arm_joint_1_rad
+            - right_arm_joint_2_rad
+            - right_arm_joint_3_rad
+            - right_arm_joint_4_rad
+            - right_arm_joint_5_rad
+            - right_arm_joint_6_rad
+          args:
+            h5_path: "observations/arm/right/joints"
+            range_from: 0
+            range_to: 6  # 截取前 6 个关节
+          convert_func: degree2rad  # 度数转弧度
+        
+        # 右臂末端执行器姿态 (6维: position xyz + euler xyz)
+        - names:
+            - right_eef_pos_x_m
+            - right_eef_pos_y_m
+            - right_eef_pos_z_m
+            - right_eef_rot_euler_x_rad
+            - right_eef_rot_euler_y_rad
+            - right_eef_rot_euler_z_rad
+          args:
+            h5_path: "observations/arm/right/pose"
+            range_from: 0
+            range_to: 6
+        
+        # 左夹爪位置 (1维)
+        - names:
+            - left_gripper_open  # 去掉 _rad 后缀以匹配校验
+          args:
+            h5_path: "observations/effector/left/position"
+            range_from: 0
+            range_to: 1
+        
+        # 右夹爪位置 (1维)
+        - names:
+            - right_gripper_open  # 去掉 _rad 后缀以匹配校验
+          args:
+            h5_path: "observations/effector/right/position"
+            range_from: 0
+            range_to: 1
+
+  action:
+    timeline_offset: 1
+    # ⚠️ H5文件中的action group为空
+    # 使用observation数据作为action（典型的模仿学习设置）
+    sub_action:
+      # 左臂关节动作 (6维) - 单位: degree
+      - names:
+          - left_arm_joint_1_rad
+          - left_arm_joint_2_rad
+          - left_arm_joint_3_rad
+          - left_arm_joint_4_rad
+          - left_arm_joint_5_rad
+          - left_arm_joint_6_rad
+        args:
+          h5_path: "observations/arm/left/joints"
+          range_from: 0
+          range_to: 6
+        convert_func: degree2rad  # 度数转弧度
+      
+      # 左臂末端执行器姿态动作 (6维)
+      - names:
+          - left_eef_pos_x_m
+          - left_eef_pos_y_m
+          - left_eef_pos_z_m
+          - left_eef_rot_euler_x_rad
+          - left_eef_rot_euler_y_rad
+          - left_eef_rot_euler_z_rad
+        args:
+          h5_path: "observations/arm/left/pose"
+          range_from: 0
+          range_to: 6
+      
+      # 右臂关节动作 (6维) - 单位: degree
+      - names:
+          - right_arm_joint_1_rad
+          - right_arm_joint_2_rad
+          - right_arm_joint_3_rad
+          - right_arm_joint_4_rad
+          - right_arm_joint_5_rad
+          - right_arm_joint_6_rad
+        args:
+          h5_path: "observations/arm/right/joints"
+          range_from: 0
+          range_to: 6
+        convert_func: degree2rad  # 度数转弧度
+      
+      # 右臂末端执行器姿态动作 (6维)
+      - names:
+          - right_eef_pos_x_m
+          - right_eef_pos_y_m
+          - right_eef_pos_z_m
+          - right_eef_rot_euler_x_rad
+          - right_eef_rot_euler_y_rad
+          - right_eef_rot_euler_z_rad
+        args:
+          h5_path: "observations/arm/right/pose"
+          range_from: 0
+          range_to: 6
+      
+      # 左夹爪动作 (1维)
+      - names:
+          - left_gripper_open
+        args:
+          h5_path: "observations/effector/left/position"
+          range_from: 0
+          range_to: 1
+      
+      # 右夹爪动作 (1维)
+      - names:
+          - right_gripper_open
+        args:
+          h5_path: "observations/effector/right/position"
+          range_from: 0
+          range_to: 1
