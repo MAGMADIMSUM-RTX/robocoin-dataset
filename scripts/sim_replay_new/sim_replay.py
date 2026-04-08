@@ -1,7 +1,7 @@
 """Database Interactive Replay Script
 Usage:
 python scripts/sim_replay_new/sim_replay.py \
-    --db_file_path db/my_config.yaml \
+    --db_file_path db/postgresql_config.yaml \
     --device_model agilex_cobot_decoupled_magic \
     --device_model_version default_version \
     --log_dir ./logs/sim_replay
@@ -160,7 +160,7 @@ class SimReplayNew:
                     run_replay(
                         repo_path=qced_repo_gen_path,
                         config_name=config_name,
-                        data_source="sa_dpp", 
+                        data_source="data", 
                         data_type="all",
                         episode_idx=episode_idx,
                         auto_close=True,

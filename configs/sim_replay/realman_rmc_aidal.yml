@@ -7,17 +7,19 @@ sim:
 
   joints:
     l_joint1: left_arm_joint_1_rad
-    l_joint2: left_arm_joint_3_rad
-    l_joint3: left_arm_joint_4_rad
-    l_joint4: left_arm_joint_5_rad
-    l_joint5: left_arm_joint_6_rad
-    l_joint6: left_arm_joint_7_rad
+    l_joint2: left_arm_joint_2_rad
+    l_joint3: left_arm_joint_3_rad
+    l_joint4: left_arm_joint_4_rad
+    l_joint5: left_arm_joint_5_rad
+    l_joint6: left_arm_joint_6_rad
+    l_joint7: left_arm_joint_7_rad
     r_joint1: right_arm_joint_1_rad
     r_joint2: right_arm_joint_2_rad
     r_joint3: right_arm_joint_3_rad
     r_joint4: right_arm_joint_4_rad
     r_joint5: right_arm_joint_5_rad
     r_joint6: right_arm_joint_6_rad
+    r_joint7: right_arm_joint_7_rad
     # l_Joint_finger1: fl_joint7
     # l_Joint_finger2: fl_joint8
     # r_Joint_finger1: fr_joint7
