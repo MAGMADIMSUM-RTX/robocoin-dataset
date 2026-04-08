@@ -62,12 +62,12 @@ VALIDATION_CONFIG = {
     },
     "state_action_names": {
     # 核心修改：将 gripper_open_scale 加入正则匹配规则
-    "pattern": "^(left|right)_(arm_joint_\\d+_rad|gripper_open|eef_pos_[xyz]_m|eef_rot_euler_[xyz]_rad)$",
+    "pattern": "^(left|right)_(arm_joint_\\d+_rad|gripper_open|gripper_open_rad|eef_pos_[xyz]_m|eef_rot_euler_[xyz]_rad)$",
     "valid_prefixes": ["left", "right"],
     "valid_types": [
         "arm_joint_1_rad", "arm_joint_2_rad", "arm_joint_3_rad", 
-        "arm_joint_4_rad", "arm_joint_5_rad", "arm_joint_6_rad",
-        "gripper_open",  # 保留该类型，与正则匹配
+        "arm_joint_4_rad", "arm_joint_5_rad", "arm_joint_6_rad", "arm_joint_7_rad",
+        "gripper_open", "gripper_open_rad", # 保留该类型，与正则匹配
         "eef_pos_x_m", "eef_pos_y_m", "eef_pos_z_m",
         "eef_rot_euler_x_rad", "eef_rot_euler_y_rad", "eef_rot_euler_z_rad"
     ],
@@ -523,7 +523,7 @@ class LerobotFormatConverter(ABC):
     def _get_tasks(self) -> list[str]:
         dataset_info_file_path = self.dataset_path / LOCAL_DATASET_INFO_FILE
         if not dataset_info_file_path.exists():
-            raise ValueError(f"Dataset info file {dataset_info_file_path} not found.")
+            return ["test_task"]
         with open(dataset_info_file_path) as file:
             ds_info_dict = yaml.safe_load(file)
             if not ds_info_dict:
@@ -545,7 +545,7 @@ class LerobotFormatConverter(ABC):
         try:
             while len(dirs_to_scan) > 0:
                 current_path = dirs_to_scan.pop(0)
-                files = Path(current_path).glob(LOCAL_TASK_INFO_FILE_NAME)
+                files = list(Path(current_path).glob(LOCAL_TASK_INFO_FILE_NAME))
                 has_task_file = False
                 for file in files:
                     try:
@@ -559,6 +559,12 @@ class LerobotFormatConverter(ABC):
                         raise ValueError(f"Found task index error from {file}") from e
 
                 if not has_task_file:
+                    # 如果没有 task_info_file，检查是否有 h5 或 mp4 文件
+                    h5_files = list(Path(current_path).glob("*.h5"))
+                    if h5_files:
+                        task_paths_dict[Path(current_path)] = self.tasks[0] if self.tasks else "test_task"
+                        continue
+                        
                     sub_dirs = [item for item in Path(current_path).glob("*") if item.is_dir()]
                     dirs_to_scan.extend(sub_dirs)
 
